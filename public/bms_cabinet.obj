@@ -1,0 +1,45 @@
+# Detailed Battery Management System Cabinet Model
+o BMS_Cabinet
+
+# Vertices
+v -1.0 -0.5 -0.5
+v  1.0 -0.5 -0.5
+v  1.0  0.5 -0.5
+v -1.0  0.5 -0.5
+v -1.0 -0.5  0.5
+v  1.0 -0.5  0.5
+v  1.0  0.8  0.5
+v -1.0  0.8  0.5
+
+# Front door seam vertices
+v  0.0 -0.5  0.5
+v  0.0  0.8  0.5
+
+# Signage vertices
+v  0.3  0.1  0.501
+v  0.8  0.1  0.501
+v  0.8  0.4  0.501
+v  0.3  0.4  0.501
+
+# Base slab vertices
+v -1.2 -0.6 -0.7
+v  1.2 -0.6 -0.7
+v  1.2 -0.6  0.7
+v -1.2 -0.6  0.7
+
+# Faces
+# Back face
+f 1 2 3 4
+# Slanted Roof faces
+f 4 3 7 8
+# Side faces
+f 1 5 8 4
+f 2 6 7 3
+# Left door (front left)
+f 5 8 10 9
+# Right door (front right)
+f 9 10 7 6
+# Signage panel
+f 11 12 13 14
+# Base slab
+f 15 16 17 18
