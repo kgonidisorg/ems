@@ -1,36 +1,138 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# EMS Dashboard and API Documentation
 
-## Getting Started
+## Table of Contents
+- [EMS Dashboard and API Documentation](#ems-dashboard-and-api-documentation)
+  - [Table of Contents](#table-of-contents)
+  - [Overview](#overview)
+  - [Features](#features)
+    - [EMS Dashboard](#ems-dashboard)
+    - [API Documentation](#api-documentation)
+  - [Project Structure](#project-structure)
+  - [Installation](#installation)
+  - [Development](#development)
+  - [Docker Setup](#docker-setup)
+  - [GitHub Actions](#github-actions)
+  - [Contributing](#contributing)
+  - [License](#license)
+  - [Contact](#contact)
 
-First, run the development server:
+## Overview
+This repository contains the codebase for the Energy Management System (EMS) dashboard and API documentation. The EMS dashboard provides tools for monitoring and controlling energy systems, while the API documentation offers an interactive interface for developers to explore and test API endpoints.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Features
+### EMS Dashboard
+- **One-Click Controls**: Simplified controls for managing energy systems.
+- **Threshold Alarms**: Alerts for exceeding predefined energy thresholds.
+- **Responsive Design**: Optimized for various screen sizes.
+
+### API Documentation
+- **Interactive API Tester**: Test API endpoints directly from the documentation.
+- **Responsive Layout**: Accessible on both desktop and mobile devices.
+
+## Project Structure
+```
+├── description
+├── docker-compose.yml
+├── Dockerfile
+├── eslint.config.mjs
+├── next-env.d.ts
+├── next.config.ts
+├── package.json
+├── postcss.config.mjs
+├── README.md
+├── tsconfig.json
+├── public/
+│   ├── banner.jpg
+│   ├── bms_cabinet.obj
+│   ├── bms.webp
+│   ├── facility.webp
+│   ├── file.svg
+│   ├── flow.jpg
+│   ├── flow.webp
+│   ├── globe.svg
+│   ├── green-energy-icon.svg
+│   ├── next.svg
+│   ├── solar.webp
+│   ├── system.jpg
+│   ├── vercel.svg
+│   ├── Whisk_storyboard9b8c32f94ee84df9b74c2476.jpg
+│   ├── window.svg
+├── src/
+│   ├── app/
+│   │   ├── favicon.ico
+│   │   ├── globals.css
+│   │   ├── layout.tsx
+│   │   ├── page.tsx
+│   │   ├── analytics/
+│   │   │   ├── page.tsx
+│   │   ├── apidocs/
+│   │   │   ├── page.tsx
+│   │   ├── ems/
+│   │   │   ├── page.tsx
+│   │   ├── network/
+│   │   │   ├── page.tsx
+│   ├── components/
+│   │   ├── ClusterMapView.tsx
+│   │   ├── CO2Chart.tsx
+│   │   ├── EnergyFlowDiagram.tsx
+│   │   ├── Filters.tsx
+│   │   ├── FinancialDashboard.tsx
+│   │   ├── KPIStrip.tsx
+│   │   ├── MapView.tsx
+│   │   ├── ReportScheduler.tsx
+│   │   ├── Sidebar.tsx
+│   │   ├── TimeSeriesGraph.tsx
+│   │   ├── Topbar.tsx
+│   │   ├── ui.tsx
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Installation
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/kgonidisorg/ems.git
+   ```
+2. Navigate to the project directory:
+   ```bash
+   cd ems
+   ```
+3. Install dependencies:
+   ```bash
+   npm install
+   ```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Development
+To start the development server:
+```bash
+npm run dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Docker Setup
+Build and run the application using Docker:
+```bash
+docker-compose up --build
+```
 
-## Learn More
+## GitHub Actions
+This repository includes a GitHub Actions workflow for building and pushing Docker images to GitHub Container Registry (GHCR). Ensure repository variables are correctly configured for dynamic Docker image tagging.
 
-To learn more about Next.js, take a look at the following resources:
+## Contributing
+1. Fork the repository.
+2. Create a new branch:
+   ```bash
+   git checkout -b feature-name
+   ```
+3. Commit your changes:
+   ```bash
+   git commit -m "Add feature-name"
+   ```
+4. Push to your branch:
+   ```bash
+   git push origin feature-name
+   ```
+5. Create a pull request.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## License
+This project is licensed under the MIT License. See the LICENSE file for details.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Contact
+For questions or feedback, please contact [kiron.gonidis@gmail.com].

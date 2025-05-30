@@ -1,6 +1,6 @@
 services:
   ems:
     image: ghcr.io/kgonidisorg/ems:latest
-    container_name: social-sync
+    container_name: ems
     ports:
       - 3002:3000
