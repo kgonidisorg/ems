@@ -14,7 +14,7 @@ const menuItems: Record<MenuItemName, string> = {
     Network: "/network",
     EMS: "/ems",
     Analytics: "/analytics",
-    API: "/api",
+    API: "/apidocs",
     Compute: "/compute",
 };
 

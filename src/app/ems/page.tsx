@@ -697,13 +697,13 @@ const EMSPage: React.FC = () => {
                         Alerts & Controls
                     </h2>
                     <div className="bg-slate-800/50 p-6 rounded-lg border border-green-500/20 backdrop-blur">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             {/* One-click Controls */}
                             <div>
                                 <h3 className="text-lg font-semibold text-green-400 mb-4">
                                     One-Click Controls
                                 </h3>
-                                <div className="flex flex-col gap-4 mb-6">
+                                <div className="flex flex-col gap-4 mt-12">
                                     <button
                                         className="bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600"
                                         onClick={() =>
@@ -730,11 +730,13 @@ const EMSPage: React.FC = () => {
                                     </button>
                                 </div>
                             </div>
+
+                            {/* Threshold Alarms */}
                             <div>
                                 <h3 className="text-lg font-semibold text-green-400 mb-4">
                                     Threshold Alarms
                                 </h3>
-                                <div className="flex flex-col gap-4">
+                                <div className="grid grid-cols-1 gap-4">
                                     <div>
                                         <label className="text-white block mb-2">
                                             Battery SOC Threshold (%)
