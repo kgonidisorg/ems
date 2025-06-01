@@ -39,49 +39,47 @@ export default function EnergyFlowDiagram() {
         >
             {/* Battery */}
             <div
-                className="absolute z-1"
+                className="absolute z-1 -translate-[50%] lg:-translate-[60%]"
                 style={{
                     left: `${positions.battery.x}%`,
                     top: `${positions.battery.y}%`,
-                    transform: "translate(-60%, -60%) scale(2)",
                 }}
             >
                 <img
                     src="/bms.webp"
                     alt="Battery"
-                    className="w-16 sm:w-24 md:w-32"
+                    className="w-32 lg:w-64"
                 />
             </div>
 
             {/* Solar Array */}
             <div
-                className="absolute z-1"
+                className="absolute z-1 -translate-[60%] lg:-translate-[65%]"
                 style={{
                     left: `${positions.solar.x}%`,
                     top: `${positions.solar.y}%`,
-                    transform: "translate(-75%, -75%) scale(2)",
                 }}
             >
                 <img
                     src="solar.webp"
                     alt="Solar Array"
-                    className="w-16 sm:w-24 md:w-32"
+                    className="w-32 lg:w-84"
                 />
             </div>
 
             {/* Facility */}
             <div
-                className="absolute z-1"
+                className="absolute z-1 -translate-[50%] lg:-translate-[60%] rotate-6"
                 style={{
                     left: `${positions.facility.x}%`,
                     top: `${positions.facility.y}%`,
-                    transform: "translate(-60%, -60%) scale(1.5) rotate(6deg)",
+                    // transform: "translate(-60%, -60%) scale(1.5) rotate(6deg)",
                 }}
             >
                 <img
                     src="facility.webp"
                     alt="Facility"
-                    className="w-16 sm:w-24 md:w-32"
+                    className="w-32 lg:w-64"
                 />
             </div>
 

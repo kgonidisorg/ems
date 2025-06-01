@@ -175,7 +175,7 @@ const EMSPage: React.FC = () => {
     return (
         <div className="flex min-h-screen flex-col bg-gradient-to-br from-slate-900 to-slate-800">
             <Topbar selected="EMS" />
-            <main className="flex-1 p-8 w-7xl mx-auto">
+            <main className="flex-1 p-8 max-w-7xl mx-auto">
                 <div className="flex items-center justify-between mb-8">
                     <div>
                         <h1 className="text-5xl font-bold text-white mb-2">

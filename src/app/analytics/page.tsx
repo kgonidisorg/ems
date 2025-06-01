@@ -10,7 +10,7 @@ const AnalyticsPage: React.FC = () => {
     return (
         <div className="flex min-h-screen flex-col bg-gradient-to-br from-slate-900 to-slate-800">
             <Topbar selected="Analytics" />
-            <main className="flex-1 p-8 w-7xl mx-auto">
+            <main className="flex-1 p-8 max-w-7xl mx-auto">
                 {/* Header */}
                 <div className="flex items-center justify-between mb-8">
                     <div>
@@ -24,7 +24,7 @@ const AnalyticsPage: React.FC = () => {
                 </div>
 
                 {/* Time-Series Explorer */}
-                <section className="mb-8">
+                <section className="mb-8 w-full">
                     <div className="p-6 rounded-lg bg-slate-800/50 border border-green-500/20 backdrop-blur">
                         <h2 className="text-2xl font-bold text-white mb-4">
                             Time-Series Explorer

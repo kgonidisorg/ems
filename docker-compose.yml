@@ -3,4 +3,4 @@ services:
     image: ghcr.io/kgonidisorg/ems:latest
     container_name: ems
     ports:
-      - 3002:3000
+      - 3002:80
