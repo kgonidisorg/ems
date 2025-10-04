@@ -17,11 +17,10 @@ import java.util.Map;
 public class FallbackController {
 
     /**
-     * Fallback for device service
+     * Fallback for device service - GET
      */
     @GetMapping("/device-service")
-    @PostMapping("/device-service")
-    public ResponseEntity<?> deviceServiceFallback() {
+    public ResponseEntity<?> deviceServiceFallbackGet() {
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                 .body(Map.of(
                         "error", "Device service is currently unavailable",
@@ -32,11 +31,24 @@ public class FallbackController {
     }
 
     /**
-     * Fallback for analytics service
+     * Fallback for device service - POST
+     */
+    @PostMapping("/device-service")
+    public ResponseEntity<?> deviceServiceFallbackPost() {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(Map.of(
+                        "error", "Device service is currently unavailable",
+                        "message", "Please try again later",
+                        "service", "device-service",
+                        "timestamp", System.currentTimeMillis()
+                ));
+    }
+
+    /**
+     * Fallback for analytics service - GET
      */
     @GetMapping("/analytics-service")
-    @PostMapping("/analytics-service")
-    public ResponseEntity<?> analyticsServiceFallback() {
+    public ResponseEntity<?> analyticsServiceFallbackGet() {
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                 .body(Map.of(
                         "error", "Analytics service is currently unavailable",
@@ -47,16 +59,85 @@ public class FallbackController {
     }
 
     /**
-     * Fallback for notification service
+     * Fallback for analytics service - POST
+     */
+    @PostMapping("/analytics-service")
+    public ResponseEntity<?> analyticsServiceFallbackPost() {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(Map.of(
+                        "error", "Analytics service is currently unavailable",
+                        "message", "Please try again later",
+                        "service", "analytics-service",
+                        "timestamp", System.currentTimeMillis()
+                ));
+    }
+
+    /**
+     * Fallback for notification service - GET
      */
     @GetMapping("/notification-service")
-    @PostMapping("/notification-service")
-    public ResponseEntity<?> notificationServiceFallback() {
+    public ResponseEntity<?> notificationServiceFallbackGet() {
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                 .body(Map.of(
                         "error", "Notification service is currently unavailable",
                         "message", "Please try again later",
                         "service", "notification-service",
+                        "timestamp", System.currentTimeMillis()
+                ));
+    }
+
+    /**
+     * Fallback for notification service - POST
+     */
+    @PostMapping("/notification-service")
+    public ResponseEntity<?> notificationServiceFallbackPost() {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(Map.of(
+                        "error", "Notification service is currently unavailable",
+                        "message", "Please try again later",
+                        "service", "notification-service",
+                        "timestamp", System.currentTimeMillis()
+                ));
+    }
+
+    /**
+     * Fallback for auth service - GET
+     */
+    @GetMapping("/auth-service")
+    public ResponseEntity<?> authServiceFallbackGet() {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(Map.of(
+                        "error", "Auth service is currently unavailable",
+                        "message", "Please try again later",
+                        "service", "auth-service",
+                        "timestamp", System.currentTimeMillis()
+                ));
+    }
+
+    /**
+     * Fallback for auth service - POST
+     */
+    @PostMapping("/auth-service")
+    public ResponseEntity<?> authServiceFallbackPost() {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(Map.of(
+                        "error", "Auth service is currently unavailable",
+                        "message", "Please try again later",
+                        "service", "auth-service",
+                        "timestamp", System.currentTimeMillis()
+                ));
+    }
+
+    /**
+     * Health check fallback
+     */
+    @GetMapping("/health")
+    public ResponseEntity<?> healthFallback() {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(Map.of(
+                        "error", "Health check service is currently unavailable",
+                        "message", "Please try again later",
+                        "service", "health",
                         "timestamp", System.currentTimeMillis()
                 ));
     }
