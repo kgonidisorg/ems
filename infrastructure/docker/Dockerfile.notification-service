@@ -13,12 +13,12 @@ COPY shared/pom.xml /tmp/shared-pom.xml
 
 # Install shared library to local Maven repository
 RUN mvn install:install-file \
-    -Dfile=/tmp/shared-1.0.0.jar \
-    -DgroupId=com.ecogrid.ems \
-    -DartifactId=shared \
-    -Dversion=1.0.0 \
-    -Dpackaging=jar \
-    -DpomFile=/tmp/shared-pom.xml
+  -Dfile=/tmp/shared-1.0.0.jar \
+  -DgroupId=com.ecogrid.ems \
+  -DartifactId=shared \
+  -Dversion=1.0.0 \
+  -Dpackaging=jar \
+  -DpomFile=/tmp/shared-pom.xml
 
 # Copy Maven files
 COPY notification-service/pom.xml .

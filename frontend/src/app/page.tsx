@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import MapView from "@/components/MapView";
 import Topbar from "@/components/Topbar";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 
 export default function Home() {
     const [totalSites, setTotalSites] = useState(342);
@@ -52,11 +53,12 @@ export default function Home() {
     }, []);
 
     return (
-        <div className="flex min-h-screen flex-col bg-gradient-to-br from-slate-900 to-slate-800">
-            <Topbar />
-            <main className="flex-1">
-                <div className="p-8">
-                    <div className="max-w-7xl mx-auto">
+        <ProtectedRoute>
+            <div className="flex min-h-screen flex-col bg-gradient-to-br from-slate-900 to-slate-800">
+                <Topbar />
+                <main className="flex-1">
+                    <div className="p-8">
+                        <div className="max-w-7xl mx-auto">
                         {/* Header */}
                         <div className="flex items-center justify-between mb-8">
                             <div>
@@ -306,5 +308,6 @@ export default function Home() {
                 </div>
             </main>
         </div>
+        </ProtectedRoute>
     );
 }
