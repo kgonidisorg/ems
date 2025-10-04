@@ -8,7 +8,7 @@ spring:
     name: auth-service
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/ems_auth
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5433}/${DB_NAME:ems_auth}
     username: ${DB_USERNAME:ems_user}
     password: ${DB_PASSWORD:ems_password}
     driver-class-name: org.postgresql.Driver

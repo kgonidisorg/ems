@@ -4,12 +4,25 @@ FROM eclipse-temurin:21-jdk-alpine AS builder
 # Set working directory
 WORKDIR /app
 
-# Copy Maven files
-COPY pom.xml .
-COPY src src/
-
 # Install Maven
 RUN apk add --no-cache maven
+
+# Copy shared library
+COPY shared/target/shared-1.0.0.jar /tmp/shared-1.0.0.jar
+COPY shared/pom.xml /tmp/shared-pom.xml
+
+# Install shared library to local Maven repository
+RUN mvn install:install-file \
+    -Dfile=/tmp/shared-1.0.0.jar \
+    -DgroupId=com.ecogrid.ems \
+    -DartifactId=shared \
+    -Dversion=1.0.0 \
+    -Dpackaging=jar \
+    -DpomFile=/tmp/shared-pom.xml
+
+# Copy Maven files
+COPY analytics-service/pom.xml .
+COPY analytics-service/src src/
 
 # Build the application
 RUN mvn clean package -DskipTests
