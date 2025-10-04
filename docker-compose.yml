@@ -1,6 +1,25 @@
 services:
-  ems:
-    image: ghcr.io/kgonidisorg/ems:latest
-    container_name: ems
+  # Frontend service for local development
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: ../Dockerfile
+    container_name: ems-frontend
     ports:
-      - 3002:80
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    environment:
+      - NODE_ENV=development
+    command: npm run dev
+    
+  # Production frontend service (using existing image)
+  ems-prod:
+    image: ghcr.io/kgonidisorg/ems:latest
+    container_name: ems-prod
+    ports:
+      - "3002:80"
+    profiles:
+      - production

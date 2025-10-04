@@ -1,41 +1,264 @@
+# EcoGrid EMS Monorepo - Gitignore
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# dependencies
-/node_modules
-/.pnp
-.pnp.*
+# =====================================================
+# Node.js Dependencies
+# =====================================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.npm
 .yarn/*
 !.yarn/patches
 !.yarn/plugins
 !.yarn/releases
 !.yarn/versions
+/.pnp
+.pnp.*
 
-# testing
-/coverage
+# =====================================================
+# Frontend (Next.js) Files
+# =====================================================
+# Next.js build outputs
+frontend/.next/
+frontend/out/
+frontend/build/
+frontend/dist/
 
-# next.js
-/.next/
-/out/
+# Next.js cache
+frontend/.next/cache/
 
-# production
-/build
+# Testing
+frontend/coverage/
+frontend/.nyc_output
 
-# misc
+# TypeScript
+frontend/*.tsbuildinfo
+frontend/next-env.d.ts
+
+# =====================================================
+# Backend (Java/Spring Boot) Files
+# =====================================================
+# Maven
+backend/**/target/
+backend/**/.m2/
+backend/**/dependency-reduced-pom.xml
+
+# Gradle
+backend/**/.gradle
+backend/**/build/
+backend/**/gradle-app.setting
+backend/**/!gradle-wrapper.jar
+backend/**/.gradletasknamecache
+
+# Spring Boot
+backend/**/*.jar
+backend/**/*.war
+backend/**/*.ear
+backend/**/*.nar
+backend/**/hs_err_pid*
+backend/**/replay_pid*
+
+# IDE files
+backend/**/.idea/
+backend/**/*.iws
+backend/**/*.iml
+backend/**/*.ipr
+backend/**/.vscode/
+backend/**/.settings/
+backend/**/.project
+backend/**/.classpath
+
+# =====================================================
+# Infrastructure Files
+# =====================================================
+# Terraform
+infrastructure/**/.terraform/
+infrastructure/**/.terraform.lock.hcl
+infrastructure/**/terraform.tfstate
+infrastructure/**/terraform.tfstate.backup
+infrastructure/**/*.tfvars
+infrastructure/**/*.tfplan
+
+# Kubernetes secrets
+infrastructure/kubernetes/**/*-secret.yaml
+infrastructure/kubernetes/**/secrets/
+
+# Docker
+infrastructure/docker/**/.dockerignore
+
+# =====================================================
+# Environment & Configuration Files
+# =====================================================
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.staging
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Configuration files with sensitive data
+**/application-local.yml
+**/application-dev.yml
+**/application-prod.yml
+**/config/local.json
+
+# =====================================================
+# Development & Build Files
+# =====================================================
+# Build outputs
+build/
+dist/
+out/
+coverage/
+
+# Logs
+logs/
+*.log
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Runtime data
+lib-cov
+coverage
+.nyc_output
+.grunt
+bower_components
+
+# =====================================================
+# Operating System Files
+# =====================================================
+# macOS
 .DS_Store
+.AppleDouble
+.LSOverride
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# =====================================================
+# IDE & Editor Files
+# =====================================================
+# VSCode
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
+
+# IntelliJ IDEA
+.idea/
+*.swp
+*.swo
+*~
+
+# Eclipse
+.project
+.metadata
+bin/
+tmp/
+*.tmp
+*.bak
+*.swp
+*~.nib
+local.properties
+.settings/
+.loadpath
+.recommenders
+
+# =====================================================
+# Security & Keys
+# =====================================================
+# SSL Certificates
 *.pem
+*.key
+*.crt
+*.csr
 
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
+# SSH Keys
+id_rsa
+id_rsa.pub
+id_ed25519
+id_ed25519.pub
 
-# env files (can opt-in for committing if needed)
-.env*
-
-# vercel
+# =====================================================
+# Cloud & Deployment
+# =====================================================
+# Vercel
 .vercel
 
-# typescript
-*.tsbuildinfo
-next-env.d.ts
+# AWS
+.aws/
+
+# Docker
+.docker/
+
+# =====================================================
+# Monitoring & Performance
+# =====================================================
+# Performance monitoring
+.clinic/
+.0x/
+
+# Coverage reports
+coverage/
+.coverage
+htmlcov/
+
+# =====================================================
+# Package Managers
+# =====================================================
+# Yarn
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+
+# pnpm
+.pnpm-store/
+
+# =====================================================
+# Temporary Files
+# =====================================================
+*.tmp
+*.temp
+.cache/
+.parcel-cache/

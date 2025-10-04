@@ -1,89 +1,142 @@
-# EMS Dashboard and API Documentation
+# EcoGrid Energy Management System - Monorepo
+
+This monorepo contains the complete EcoGrid Energy Management System, including frontend, backend services, and infrastructure code.
 
 ## Table of Contents
-- [EMS Dashboard and API Documentation](#ems-dashboard-and-api-documentation)
-  - [Table of Contents](#table-of-contents)
-  - [Overview](#overview)
-  - [Features](#features)
-    - [EMS Dashboard](#ems-dashboard)
-    - [API Documentation](#api-documentation)
-  - [Project Structure](#project-structure)
-  - [Installation](#installation)
-  - [Development](#development)
-  - [Docker Setup](#docker-setup)
-  - [GitHub Actions](#github-actions)
-  - [Contributing](#contributing)
-  - [License](#license)
-  - [Contact](#contact)
-
-## Overview
-This repository contains the codebase for the Energy Management System (EMS) dashboard and API documentation. The EMS dashboard provides tools for monitoring and controlling energy systems, while the API documentation offers an interactive interface for developers to explore and test API endpoints.
-
-## Features
-### EMS Dashboard
-- **One-Click Controls**: Simplified controls for managing energy systems.
-- **Threshold Alarms**: Alerts for exceeding predefined energy thresholds.
-- **Responsive Design**: Optimized for various screen sizes.
-
-### API Documentation
-- **Interactive API Tester**: Test API endpoints directly from the documentation.
-- **Responsive Layout**: Accessible on both desktop and mobile devices.
+- [Project Structure](#project-structure)
+- [Quick Start](#quick-start)
+- [Available Scripts](#available-scripts)
+- [Current Status](#current-status)
+- [Documentation](#documentation)
+- [Technology Stack](#technology-stack)
 
 ## Project Structure
+
 ```
-├── description
-├── docker-compose.yml
-├── Dockerfile
-├── eslint.config.mjs
-├── next-env.d.ts
-├── next.config.ts
-├── package.json
-├── postcss.config.mjs
-├── README.md
-├── tsconfig.json
-├── public/
-│   ├── banner.jpg
-│   ├── bms_cabinet.obj
-│   ├── bms.webp
-│   ├── facility.webp
-│   ├── file.svg
-│   ├── flow.jpg
-│   ├── flow.webp
-│   ├── globe.svg
-│   ├── green-energy-icon.svg
-│   ├── next.svg
-│   ├── solar.webp
-│   ├── system.jpg
-│   ├── vercel.svg
-│   ├── Whisk_storyboard9b8c32f94ee84df9b74c2476.jpg
-│   ├── window.svg
-├── src/
-│   ├── app/
-│   │   ├── favicon.ico
-│   │   ├── globals.css
-│   │   ├── layout.tsx
-│   │   ├── page.tsx
-│   │   ├── analytics/
-│   │   │   ├── page.tsx
-│   │   ├── apidocs/
-│   │   │   ├── page.tsx
-│   │   ├── ems/
-│   │   │   ├── page.tsx
-│   │   ├── network/
-│   │   │   ├── page.tsx
-│   ├── components/
-│   │   ├── ClusterMapView.tsx
-│   │   ├── CO2Chart.tsx
-│   │   ├── EnergyFlowDiagram.tsx
-│   │   ├── Filters.tsx
-│   │   ├── FinancialDashboard.tsx
-│   │   ├── KPIStrip.tsx
-│   │   ├── MapView.tsx
-│   │   ├── ReportScheduler.tsx
-│   │   ├── Sidebar.tsx
-│   │   ├── TimeSeriesGraph.tsx
-│   │   ├── Topbar.tsx
-│   │   ├── ui.tsx
+ems/
+├── frontend/                    # Next.js 15 application
+├── backend/                     # Spring Boot microservices (coming soon)
+├── infrastructure/              # DevOps and Infrastructure
+│   ├── docker/                 # Dockerfiles
+│   ├── kubernetes/             # K8s manifests and Helm charts
+│   └── terraform/              # Infrastructure as Code
+├── shared/                      # Cross-platform shared code
+├── docs/                        # Documentation
+├── .github/                     # CI/CD workflows
+└── README.md                    # This file
+```
+
+## Quick Start
+
+### Prerequisites
+- Node.js 18+ and npm 9+
+- Docker and Docker Compose (for full stack development)
+
+### Development
+
+1. **Install dependencies for all workspaces:**
+   ```bash
+   npm run install:all
+   ```
+
+2. **Start the frontend development server:**
+   ```bash
+   npm run dev
+   # or specifically:
+   npm run frontend:dev
+   ```
+
+3. **Build the frontend:**
+   ```bash
+   npm run build
+   # or specifically:
+   npm run frontend:build
+   ```
+
+## Available Scripts
+
+- `npm run dev` - Start frontend development server
+- `npm run build` - Build frontend for production
+- `npm run start` - Start frontend production server
+- `npm run lint` - Run linting on frontend
+- `npm run clean` - Clean all node_modules and build artifacts
+- `npm run docker:dev` - Start development environment with Docker
+- `npm run docker:build` - Build Docker images
+- `npm run docker:down` - Stop Docker containers
+
+### Docker Development
+
+To run the full development environment:
+
+```bash
+npm run docker:dev
+```
+
+This will start:
+- Frontend development server at http://localhost:3000
+- Backend services (when implemented)
+- Databases and message queues
+
+## Current Status
+
+### ✅ Completed
+- **Frontend**: Next.js 15 application with Tailwind CSS, TypeScript, and Recharts
+- **Dashboard**: Real-time KPIs, interactive maps, analytics pages
+- **Monorepo Structure**: Organized workspace with npm workspaces
+- **Docker Setup**: Development and production containers
+
+### 🔄 In Progress
+- **Backend Services**: Spring Boot microservices architecture
+- **Real-time Data**: MQTT + WebSocket integration
+- **Authentication**: JWT-based user management
+
+### 📋 Planned
+- **DevOps**: CI/CD pipelines, Kubernetes deployment
+- **Infrastructure**: Terraform for cloud resources
+- **Advanced Features**: Device control, predictive analytics
+
+## Documentation
+
+See the [docs/](./docs/) directory for detailed documentation:
+
+- [Project.md](./docs/Project.md) - Complete project plan and architecture
+- Backend API documentation (coming soon)
+- Deployment guides (coming soon)
+
+## Contributing
+
+1. Follow the existing code structure and naming conventions
+2. Add tests for new features
+3. Update documentation as needed
+4. Use the provided linting and formatting tools
+- Use the provided linting and formatting tools
+
+## Technology Stack
+
+### Frontend
+- **Framework**: Next.js 15 with TypeScript
+- **Styling**: Tailwind CSS
+- **Charts**: Recharts
+- **Maps**: Mapbox GL JS
+- **Icons**: React Icons
+
+### Backend (Planned)
+- **Framework**: Spring Boot 3.x
+- **Database**: PostgreSQL, Redis
+- **Message Queue**: Apache Kafka
+- **IoT Protocol**: MQTT
+- **API**: REST + GraphQL
+
+### DevOps
+- **Containers**: Docker & Docker Compose
+- **Orchestration**: Kubernetes
+- **CI/CD**: GitHub Actions
+- **Infrastructure**: Terraform
+- **Monitoring**: Prometheus, Grafana
+
+## License
+
+MIT License - see LICENSE file for details.
 ```
 
 ## Installation
