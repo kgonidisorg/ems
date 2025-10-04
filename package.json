@@ -13,15 +13,44 @@
     "build": "npm run build --workspace=frontend",
     "start": "npm run start --workspace=frontend",
     "lint": "npm run lint --workspace=frontend",
+    
     "frontend:dev": "npm run dev --workspace=frontend",
     "frontend:build": "npm run build --workspace=frontend",
     "frontend:start": "npm run start --workspace=frontend",
     "frontend:lint": "npm run lint --workspace=frontend",
+    "frontend:test": "npm run test --workspace=frontend",
+    
+    "backend:build": "cd backend && find . -name 'pom.xml' -not -path '*/target/*' -execdir mvn clean compile \\;",
+    "backend:test": "cd backend && find . -name 'pom.xml' -not -path '*/target/*' -execdir mvn test \\;",
+    "backend:package": "cd backend && find . -name 'pom.xml' -not -path '*/target/*' -execdir mvn clean package -DskipTests \\;",
+    
     "install:all": "npm install --workspaces",
-    "clean": "rm -rf */node_modules */.next */dist && npm install",
-    "docker:dev": "docker-compose up -d",
+    "clean": "rm -rf */node_modules */.next */dist */target && npm install",
+    "clean:frontend": "rm -rf frontend/node_modules frontend/.next frontend/dist",
+    "clean:backend": "find backend -name target -type d -exec rm -rf {} + 2>/dev/null || true",
+    
+    "docker:dev": "docker-compose --profile frontend --profile backend up -d",
+    "docker:frontend": "docker-compose --profile frontend up -d",
+    "docker:backend": "docker-compose --profile backend up -d",
+    "docker:db": "docker-compose up -d postgres redis mosquitto",
     "docker:build": "docker-compose build",
-    "docker:down": "docker-compose down"
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "docker:clean": "docker-compose down -v --remove-orphans && docker system prune -f",
+    
+    "dev:full": "npm run docker:db && sleep 10 && npm run backend:build && npm run docker:backend && npm run frontend:dev",
+    "dev:frontend": "npm run frontend:dev",
+    "dev:backend": "npm run docker:db && npm run docker:backend",
+    
+    "test": "npm run frontend:test && npm run backend:test",
+    "build:all": "npm run frontend:build && npm run backend:package",
+    
+    "health": "curl -f http://localhost:8080/actuator/health && curl -f http://localhost:3000/api/health || echo 'Services not running'",
+    "logs:api-gateway": "docker logs -f ems-api-gateway",
+    "logs:auth": "docker logs -f ems-auth-service",
+    "logs:device": "docker logs -f ems-device-service",
+    "logs:analytics": "docker logs -f ems-analytics-service",
+    "logs:notification": "docker logs -f ems-notification-service"
   },
   "keywords": [
     "energy-management",
