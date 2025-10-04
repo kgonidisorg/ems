@@ -1,25 +1,165 @@
 services:
+  # Database Services
+  postgres:
+    image: postgres:16-alpine
+    container_name: ems-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ems
+      POSTGRES_USER: ems_user
+      POSTGRES_PASSWORD: ems_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infrastructure/docker/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ems_user -d ems"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: ems-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MQTT Broker for IoT devices
+  mosquitto:
+    image: eclipse-mosquitto:2.0
+    container_name: ems-mqtt
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./infrastructure/docker/mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_logs:/mosquitto/log
+
+  # Backend Services
+  api-gateway:
+    build:
+      context: ./backend/api-gateway
+      dockerfile: ../../infrastructure/docker/Dockerfile.backend
+    container_name: ems-api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - REDIS_HOST=redis
+    depends_on:
+      redis:
+        condition: service_healthy
+    profiles:
+      - backend
+
+  auth-service:
+    build:
+      context: ./backend/auth-service
+      dockerfile: ../../infrastructure/docker/Dockerfile.backend
+    container_name: ems-auth-service
+    ports:
+      - "8081:8081"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - DB_HOST=postgres
+      - DB_NAME=ems_auth
+      - DB_USERNAME=ems_user
+      - DB_PASSWORD=ems_password
+      - REDIS_HOST=redis
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    profiles:
+      - backend
+
+  device-service:
+    build:
+      context: ./backend/device-service
+      dockerfile: ../../infrastructure/docker/Dockerfile.backend
+    container_name: ems-device-service
+    ports:
+      - "8082:8082"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - DB_HOST=postgres
+      - DB_NAME=ems_devices
+      - DB_USERNAME=ems_user
+      - DB_PASSWORD=ems_password
+      - MQTT_BROKER_URL=tcp://mosquitto:1883
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mosquitto:
+        condition: service_started
+    profiles:
+      - backend
+
+  analytics-service:
+    build:
+      context: ./backend/analytics-service
+      dockerfile: ../../infrastructure/docker/Dockerfile.backend
+    container_name: ems-analytics-service
+    ports:
+      - "8083:8083"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - DB_HOST=postgres
+      - DB_NAME=ems_analytics
+      - DB_USERNAME=ems_user
+      - DB_PASSWORD=ems_password
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles:
+      - backend
+
+  notification-service:
+    build:
+      context: ./backend/notification-service
+      dockerfile: ../../infrastructure/docker/Dockerfile.backend
+    container_name: ems-notification-service
+    ports:
+      - "8084:8084"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - DB_HOST=postgres
+      - DB_NAME=ems_notifications
+      - DB_USERNAME=ems_user
+      - DB_PASSWORD=ems_password
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles:
+      - backend
+
   # Frontend service for local development
   frontend:
     build:
       context: ./frontend
-      dockerfile: ../Dockerfile
+      dockerfile: ../infrastructure/docker/Dockerfile.frontend
     container_name: ems-frontend
     ports:
-      - "3000:3000"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-      - /app/.next
-    environment:
-      - NODE_ENV=development
-    command: npm run dev
-    
-  # Production frontend service (using existing image)
-  ems-prod:
-    image: ghcr.io/kgonidisorg/ems:latest
-    container_name: ems-prod
-    ports:
-      - "3002:80"
+      - "3000:80"
+    depends_on:
+      - api-gateway
     profiles:
-      - production
+      - frontend
+
+volumes:
+  postgres_data:
+  redis_data:
+  mosquitto_data:
+  mosquitto_logs:
