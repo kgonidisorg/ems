@@ -75,6 +75,13 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- Shared Library -->
+        <dependency>
+            <groupId>com.ecogrid.ems</groupId>
+            <artifactId>shared</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+
         <!-- Redis for session management -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
