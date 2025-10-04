@@ -51,10 +51,23 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- Shared Library -->
+        <dependency>
+            <groupId>com.ecogrid.ems</groupId>
+            <artifactId>shared</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+
         <!-- MQTT for IoT communication -->
         <dependency>
             <groupId>org.springframework.integration</groupId>
             <artifactId>spring-integration-mqtt</artifactId>
+        </dependency>
+
+        <!-- Kafka for event streaming -->
+        <dependency>
+            <groupId>org.springframework.kafka</groupId>
+            <artifactId>spring-kafka</artifactId>
         </dependency>
 
         <!-- Testing -->
