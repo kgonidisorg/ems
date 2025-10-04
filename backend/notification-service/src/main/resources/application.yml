@@ -1,0 +1,101 @@
+server:
+  port: 8084
+
+spring:
+  application:
+    name: notification-service
+  
+  # Database Configuration
+  datasource:
+    url: jdbc:postgresql://localhost:5432/ems
+    username: ems_user
+    password: ems_password
+    driver-class-name: org.postgresql.Driver
+  
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+  
+  # Kafka Configuration
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: notification-service
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "com.ecogrid.ems.shared.events,com.ecogrid.ems.notification.dto"
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+  
+  # Email Configuration
+  mail:
+    host: localhost
+    port: 1025 # Using MailHog for development
+    username: 
+    password: 
+    properties:
+      mail:
+        smtp:
+          auth: false
+          starttls:
+            enable: false
+  
+  # Thymeleaf Configuration for email templates
+  thymeleaf:
+    prefix: classpath:/templates/
+    suffix: .html
+    mode: HTML
+    encoding: UTF-8
+    cache: false
+
+# Management endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+
+# Logging Configuration
+logging:
+  level:
+    com.ecogrid.ems.notification: DEBUG
+    org.springframework.kafka: INFO
+    org.springframework.web.socket: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# Custom application properties
+app:
+  websocket:
+    endpoint: /ws
+    topic-prefix: /topic
+  
+  kafka:
+    topics:
+      device-telemetry: device-telemetry
+      device-status: device-status
+      alert-notifications: alert-notifications
+  
+  notification:
+    email:
+      from: noreply@ecogrid.com
+      enabled: true
+    websocket:
+      enabled: true
+    retry:
+      max-attempts: 3
+      delay: 5000
+    cleanup:
+      alert-history-days: 90
