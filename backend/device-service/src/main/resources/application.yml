@@ -40,8 +40,8 @@ spring:
 
 # MQTT Configuration for IoT devices
 mqtt:
-  broker-url: tcp://localhost:1883
-  client-id: device-service
+  broker-url: tcp://${MQTT_HOST:localhost}:${MQTT_PORT:1883}
+  client-id: ${MQTT_CLIENT_ID:device-service}
   username: ${MQTT_USERNAME:ems_mqtt}
   password: ${MQTT_PASSWORD:ems_mqtt_password}
   topics:

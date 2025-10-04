@@ -94,6 +94,15 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - AUTH_SERVICE_HOST=auth-service
+      - AUTH_SERVICE_PORT=8081
+      - DEVICE_SERVICE_HOST=device-service
+      - DEVICE_SERVICE_PORT=8082
+      - ANALYTICS_SERVICE_HOST=analytics-service
+      - ANALYTICS_SERVICE_PORT=8083
+      - NOTIFICATION_SERVICE_HOST=notification-service
+      - NOTIFICATION_SERVICE_PORT=8084
     depends_on:
       redis:
         condition: service_healthy
@@ -138,7 +147,11 @@ services:
       - DB_USERNAME=ems_user
       - DB_PASSWORD=ems_password
       - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
-      - MQTT_BROKER_URL=tcp://mosquitto:1883
+      - MQTT_HOST=mosquitto
+      - MQTT_PORT=1883
+      - MQTT_CLIENT_ID=device-service
+      - MQTT_USERNAME=ems_mqtt
+      - MQTT_PASSWORD=ems_mqtt_password
     depends_on:
       postgres:
         condition: service_healthy
@@ -175,7 +188,7 @@ services:
       dockerfile: ../infrastructure/docker/Dockerfile.notification-service
     container_name: ems-notification-service
     ports:
-      - "8084:8084"
+      - "8085:8084"
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - DB_HOST=postgres
@@ -183,8 +196,16 @@ services:
       - DB_NAME=ems_notifications
       - DB_USERNAME=ems_user
       - DB_PASSWORD=ems_password
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - KAFKA_CONSUMER_GROUP_ID=notification-service
+      - MAIL_HOST=localhost
+      - MAIL_PORT=1025
+      - MAIL_USERNAME=
+      - MAIL_PASSWORD=
     depends_on:
       postgres:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
     profiles:
       - backend

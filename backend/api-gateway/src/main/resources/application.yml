@@ -10,7 +10,7 @@ spring:
       routes:
         # Auth Service Routes (Public endpoints)
         - id: auth-service
-          uri: http://localhost:8081
+          uri: http://${AUTH_SERVICE_HOST:auth-service}:${AUTH_SERVICE_PORT:8081}
           predicates:
             - Path=/api/auth/**
           filters:
@@ -19,7 +19,7 @@ spring:
 
         # Device Service Routes (Protected)
         - id: device-service
-          uri: http://localhost:8082
+          uri: http://${DEVICE_SERVICE_HOST:device-service}:${DEVICE_SERVICE_PORT:8082}
           predicates:
             - Path=/api/devices/**
           filters:
@@ -38,7 +38,7 @@ spring:
 
         # Analytics Service Routes (Protected)
         - id: analytics-service
-          uri: http://localhost:8083
+          uri: http://${ANALYTICS_SERVICE_HOST:analytics-service}:${ANALYTICS_SERVICE_PORT:8083}
           predicates:
             - Path=/api/analytics/**
           filters:
@@ -57,7 +57,7 @@ spring:
 
         # Notification Service Routes (Protected)
         - id: notification-service
-          uri: http://localhost:8084
+          uri: http://${NOTIFICATION_SERVICE_HOST:notification-service}:${NOTIFICATION_SERVICE_PORT:8084}
           predicates:
             - Path=/api/notifications/**
           filters:
@@ -87,7 +87,7 @@ spring:
             maxAge: 3600
 
   redis:
-    host: ${REDIS_HOST:localhost}
+    host: ${REDIS_HOST:redis}
     port: ${REDIS_PORT:6379}
     password: ${REDIS_PASSWORD:}
     database: 1
