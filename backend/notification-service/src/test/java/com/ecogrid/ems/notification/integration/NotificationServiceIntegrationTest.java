@@ -13,15 +13,20 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureWebMvc;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.util.TestPropertyValues;
 import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.http.MediaType;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.junit.jupiter.Container;
@@ -33,10 +38,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@AutoConfigureWebMvc
+@AutoConfigureMockMvc
 @Testcontainers
 @ContextConfiguration(initializers = {NotificationServiceIntegrationTest.Initializer.class})
-@Transactional
 class NotificationServiceIntegrationTest {
     
     @SuppressWarnings("resource")
@@ -46,8 +50,10 @@ class NotificationServiceIntegrationTest {
             .withUsername("test")
             .withPassword("test");
     
+    @SuppressWarnings("resource")
     @Container
-    static KafkaContainer kafka = new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:latest"));
+    static KafkaContainer kafka = new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.4.0"))
+            .withEmbeddedZookeeper();
     
     @Autowired
     private MockMvc mockMvc;
@@ -66,6 +72,9 @@ class NotificationServiceIntegrationTest {
     
     @Autowired
     private AlertHistoryRepository alertHistoryRepository;
+    
+    @Autowired
+    private KafkaTemplate<String, Object> kafkaTemplate;
     
     private NotificationRule testRule;
     private NotificationPreference testPreferences;
@@ -89,6 +98,8 @@ class NotificationServiceIntegrationTest {
         testPreferences.setEmailEnabled(true);
         testPreferences.setWebsocketEnabled(true);
         testPreferences = notificationPreferenceRepository.save(testPreferences);
+        
+        System.out.println("DEBUG: Rules created in setup: " + notificationRuleRepository.count());
     }
     
     @Test
@@ -261,6 +272,8 @@ class NotificationServiceIntegrationTest {
         updatedPreferences.setQuietHoursStart(22);
         updatedPreferences.setQuietHoursEnd(6);
         updatedPreferences.setTimezone("America/New_York");
+        updatedPreferences.setCreatedAt(LocalDateTime.now());
+        updatedPreferences.setUpdatedAt(LocalDateTime.now());
         
         // When
         mockMvc.perform(put("/api/notifications/preferences/user/100")
@@ -346,6 +359,84 @@ class NotificationServiceIntegrationTest {
                 .andExpect(jsonPath("$.resolvedAt").exists());
     }
     
+    @Test
+    void kafkaDeviceEventIntegration_ShouldProcessDeviceEventsAndCreateAlerts() throws Exception {
+        // Given - Kafka device event message
+        String deviceEventTopic = "device-telemetry";
+        Map<String, Object> deviceEventMessage = Map.of(
+            "deviceId", 1,
+            "siteId", 1,
+            "timestamp", "2025-10-04T10:00:00Z",
+            "telemetry", Map.of(
+                "temperature", 85.5,
+                "voltage", 220.0,
+                "power", 1800.0
+            ),
+            "alertConditions", List.of(
+                Map.of(
+                    "type", "TEMPERATURE_HIGH",
+                    "severity", "HIGH",
+                    "message", "Temperature exceeded threshold: 85.5°C"
+                )
+            )
+        );
+        
+        // When - Send Kafka message
+        kafkaTemplate.send(deviceEventTopic, deviceEventMessage).get(10, TimeUnit.SECONDS);
+        
+        // Allow time for Kafka consumer to process the message
+        Thread.sleep(3000);
+        
+        // Then - Verify alert was created from Kafka event
+        List<Alert> alerts = alertRepository.findByDeviceIdOrderByCreatedAtDesc(1L);
+        assertTrue(!alerts.isEmpty(), "Alert should be created from Kafka device event");
+        
+        Alert createdAlert = alerts.get(0);
+        assertEquals("TEMPERATURE_HIGH", createdAlert.getType());
+        assertEquals(Alert.AlertSeverity.HIGH, createdAlert.getSeverity());
+        assertEquals("Device temperature is 85.5°C", createdAlert.getMessage());
+        assertEquals(1L, createdAlert.getDeviceId());
+        assertEquals(1L, createdAlert.getSiteId());
+        assertFalse(createdAlert.isAcknowledged());
+        
+        // Verify notification processing occurred
+        var notificationHistory = alertHistoryRepository.findByAlertIdOrderByCreatedAtDesc(createdAlert.getId());
+        assertTrue(!notificationHistory.isEmpty(), "Notification history should be created");
+    }
+    
+    @Test
+    void kafkaDeviceStatusIntegration_ShouldProcessDeviceStatusEvents() throws Exception {
+        // Given - Device status event
+        String deviceStatusTopic = "device-status";
+        Map<String, Object> statusEventMessage = Map.of(
+            "deviceId", 2,
+            "siteId", 1,
+            "timestamp", "2025-10-04T10:00:00Z",
+            "status", "OFFLINE",
+            "previousStatus", "ONLINE",
+            "reason", "Connection timeout"
+        );
+        
+        // When - Send Kafka status message
+        kafkaTemplate.send(deviceStatusTopic, statusEventMessage).get(10, TimeUnit.SECONDS);
+        
+        // Allow time for processing
+        Thread.sleep(3000);
+        
+        // Then - Verify device offline alert was created
+        List<Alert> alerts = alertRepository.findByTypeOrderByCreatedAtDesc("DEVICE_OFFLINE");
+        assertTrue(!alerts.isEmpty(), "Device offline alert should be created");
+        
+        Alert deviceAlert = alerts.stream()
+                .filter(alert -> alert.getDeviceId().equals(2L))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("Device offline alert for device 2 not found"));
+        assertEquals("DEVICE_OFFLINE", deviceAlert.getType());
+        assertEquals(Alert.AlertSeverity.HIGH, deviceAlert.getSeverity());
+        assertEquals(2L, deviceAlert.getDeviceId());
+        assertEquals(1L, deviceAlert.getSiteId());
+    }
+    
     static class Initializer implements ApplicationContextInitializer<ConfigurableApplicationContext> {
         public void initialize(@org.springframework.lang.NonNull ConfigurableApplicationContext configurableApplicationContext) {
             TestPropertyValues.of(
@@ -353,6 +444,8 @@ class NotificationServiceIntegrationTest {
                 "spring.datasource.username=" + postgres.getUsername(),
                 "spring.datasource.password=" + postgres.getPassword(),
                 "spring.kafka.bootstrap-servers=" + kafka.getBootstrapServers(),
+                "spring.kafka.consumer.group-id=test-notification-group",
+                "spring.kafka.consumer.auto-offset-reset=earliest",
                 "app.notification.email.enabled=false", // Disable email for tests
                 "app.websocket.enabled=false" // Disable WebSocket for tests
             ).applyTo(configurableApplicationContext.getEnvironment());

@@ -14,6 +14,8 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
+
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -73,13 +75,34 @@ public class NotificationService {
     private List<NotificationRule> findMatchingRules(Alert alert) {
         String alertTypePrefix = extractAlertTypePrefix(alert.getType());
         
-        return notificationRuleRepository.findMatchingRules(
+        logger.info("DEBUG: Looking for rules matching alert - siteId: {}, deviceId: {}, type: {}, prefix: {}, severity: {}", 
+                   alert.getSiteId(), alert.getDeviceId(), alert.getType(), alertTypePrefix, alert.getSeverity().name());
+        
+        // Debug: Show all rules in database
+        List<NotificationRule> allRules = notificationRuleRepository.findAll();
+        logger.info("DEBUG: Total rules in database: {}", allRules.size());
+        for (NotificationRule rule : allRules) {
+            logger.info("DEBUG: DB Rule - ID: {}, userId: {}, siteId: {}, deviceId: {}, alertType: {}, minSeverity: {}, active: {}", 
+                       rule.getId(), rule.getUserId(), rule.getSiteId(), rule.getDeviceId(), 
+                       rule.getAlertType(), rule.getMinSeverity(), rule.isActive());
+        }
+        
+        List<NotificationRule> matchingRules = notificationRuleRepository.findMatchingRules(
             alert.getSiteId(),
             alert.getDeviceId(),
             alert.getType(),
             alertTypePrefix,
-            alert.getSeverity()
+            alert.getSeverity().name()
         );
+        
+        logger.info("DEBUG: Found {} matching rules", matchingRules.size());
+        for (NotificationRule rule : matchingRules) {
+            logger.info("DEBUG: Matching rule - ID: {}, userId: {}, siteId: {}, deviceId: {}, alertType: {}, minSeverity: {}, active: {}", 
+                       rule.getId(), rule.getUserId(), rule.getSiteId(), rule.getDeviceId(), 
+                       rule.getAlertType(), rule.getMinSeverity(), rule.isActive());
+        }
+        
+        return matchingRules;
     }
     
     /**
@@ -146,6 +169,12 @@ public class NotificationService {
      * Create default notification preferences for a user
      */
     private NotificationPreference createDefaultPreferences(Long userId) {
+        // Check if preferences already exist
+        Optional<NotificationPreference> existing = notificationPreferenceRepository.findByUserId(userId);
+        if (existing.isPresent()) {
+            return existing.get();
+        }
+        
         NotificationPreference preferences = new NotificationPreference();
         preferences.setUserId(userId);
         preferences.setEmailEnabled(true);

@@ -68,7 +68,7 @@ class NotificationServiceTest {
         // Given
         List<NotificationRule> matchingRules = Arrays.asList(testRule);
         when(notificationRuleRepository.findMatchingRules(
-            eq(1L), eq(1L), eq("TEMPERATURE_HIGH"), eq("TEMPERATURE_"), eq(Alert.AlertSeverity.HIGH)))
+            eq(1L), eq(1L), eq("TEMPERATURE_HIGH"), eq("TEMPERATURE_"), eq("HIGH")))
             .thenReturn(matchingRules);
         
         when(notificationPreferenceRepository.findByUserId(100L))
@@ -83,7 +83,7 @@ class NotificationServiceTest {
         
         // Then
         verify(notificationRuleRepository).findMatchingRules(
-            eq(1L), eq(1L), eq("TEMPERATURE_HIGH"), eq("TEMPERATURE_"), eq(Alert.AlertSeverity.HIGH));
+            eq(1L), eq(1L), eq("TEMPERATURE_HIGH"), eq("TEMPERATURE_"), eq("HIGH"));
         verify(emailService).sendAlertNotification(testAlert, "test@example.com");
         verify(webSocketService).sendAlertToUser(100L, testAlert);
         verify(alertHistoryRepository, times(2)).save(any(AlertHistory.class));
@@ -101,7 +101,7 @@ class NotificationServiceTest {
         
         // Then
         verify(notificationRuleRepository).findMatchingRules(
-            eq(1L), eq(1L), eq("TEMPERATURE_HIGH"), eq("TEMPERATURE_"), eq(Alert.AlertSeverity.HIGH));
+            eq(1L), eq(1L), eq("TEMPERATURE_HIGH"), eq("TEMPERATURE_"), eq("HIGH"));
         verify(emailService, never()).sendAlertNotification(any(), any());
         verify(webSocketService, never()).sendAlertToUser(any(), any());
         verify(alertHistoryRepository, never()).save(any());

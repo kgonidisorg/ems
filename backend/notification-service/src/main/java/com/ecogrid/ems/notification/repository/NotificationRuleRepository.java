@@ -1,6 +1,6 @@
 package com.ecogrid.ems.notification.repository;
 
-import com.ecogrid.ems.notification.entity.Alert;
+
 import com.ecogrid.ems.notification.entity.NotificationRule;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -33,12 +33,15 @@ public interface NotificationRuleRepository extends JpaRepository<NotificationRu
            "(nr.siteId IS NULL OR nr.siteId = :siteId) AND " +
            "(nr.deviceId IS NULL OR nr.deviceId = :deviceId) AND " +
            "(nr.alertType = :alertType OR nr.alertType LIKE CONCAT(:alertTypePrefix, '%')) AND " +
-           "CAST(nr.minSeverity AS string) <= CAST(:severity AS string)")
+           "(nr.minSeverity = 'LOW' OR " +
+           " (nr.minSeverity = 'MEDIUM' AND :severity IN ('MEDIUM', 'HIGH', 'CRITICAL')) OR " +
+           " (nr.minSeverity = 'HIGH' AND :severity IN ('HIGH', 'CRITICAL')) OR " +
+           " (nr.minSeverity = 'CRITICAL' AND :severity = 'CRITICAL'))")
     List<NotificationRule> findMatchingRules(@Param("siteId") Long siteId,
                                            @Param("deviceId") Long deviceId,
                                            @Param("alertType") String alertType,
                                            @Param("alertTypePrefix") String alertTypePrefix,
-                                           @Param("severity") Alert.AlertSeverity severity);
+                                           @Param("severity") String severity);
     
     // Find rules by alert type pattern
     @Query("SELECT nr FROM NotificationRule nr WHERE nr.active = true AND " +

@@ -74,28 +74,32 @@ public class DeviceEventConsumer {
             return;
         }
         
-        logger.debug("Processing telemetry data for device: {}, site: {}", deviceId, siteId);
+        logger.info("Processing telemetry data for device: {}, site: {}", deviceId, siteId);
+        
+        // Get telemetry object (support both nested and flat structures)
+        Map<String, Object> telemetryValues = getTelemetryValues(telemetryData);
         
         // Check for temperature alerts
-        Double temperature = getDoubleValue(telemetryData, "temperature");
+        Double temperature = getDoubleValue(telemetryValues, "temperature");
         if (temperature != null) {
+            logger.info("Processing temperature: {} for device: {}", temperature, deviceId);
             checkTemperatureAlerts(deviceId, siteId, temperature);
         }
         
         // Check for voltage alerts
-        Double voltage = getDoubleValue(telemetryData, "voltage");
+        Double voltage = getDoubleValue(telemetryValues, "voltage");
         if (voltage != null) {
             checkVoltageAlerts(deviceId, siteId, voltage);
         }
         
         // Check for power alerts
-        Double power = getDoubleValue(telemetryData, "power");
+        Double power = getDoubleValue(telemetryValues, "power");
         if (power != null) {
             checkPowerAlerts(deviceId, siteId, power);
         }
         
         // Check for battery level alerts
-        Double batteryLevel = getDoubleValue(telemetryData, "batteryLevel");
+        Double batteryLevel = getDoubleValue(telemetryValues, "batteryLevel");
         if (batteryLevel != null) {
             checkBatteryAlerts(deviceId, siteId, batteryLevel);
         }
@@ -255,6 +259,21 @@ public class DeviceEventConsumer {
     }
     
     // Utility methods for safe data extraction
+    
+    /**
+     * Extract telemetry values from either nested structure or flat structure
+     */
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> getTelemetryValues(Map<String, Object> data) {
+        // First try to get nested telemetry object
+        Object telemetryObj = data.get("telemetry");
+        if (telemetryObj instanceof Map) {
+            return (Map<String, Object>) telemetryObj;
+        }
+        
+        // Fall back to flat structure (telemetry values at root level)
+        return data;
+    }
     
     private Long getLongValue(Map<String, Object> data, String key) {
         Object value = data.get(key);

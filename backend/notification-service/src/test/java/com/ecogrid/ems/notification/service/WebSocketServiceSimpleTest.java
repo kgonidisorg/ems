@@ -30,6 +30,19 @@ class WebSocketServiceTest {
     void setUp() {
         testAlert = new Alert(1L, 1L, "TEMPERATURE_HIGH", Alert.AlertSeverity.HIGH, "Temperature alert");
         testAlert.setId(1L);
+        
+        // Enable WebSocket for testing by setting the field via reflection
+        try {
+            var field = WebSocketService.class.getDeclaredField("websocketEnabled");
+            field.setAccessible(true);
+            field.set(webSocketService, true);
+            
+            var topicPrefixField = WebSocketService.class.getDeclaredField("topicPrefix");
+            topicPrefixField.setAccessible(true);
+            topicPrefixField.set(webSocketService, "/topic");
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to configure WebSocket for testing", e);
+        }
     }
     
     @Test
