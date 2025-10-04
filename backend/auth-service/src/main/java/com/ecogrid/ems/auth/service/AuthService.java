@@ -8,9 +8,7 @@ import com.ecogrid.ems.shared.dto.AuthResponse;
 import com.ecogrid.ems.shared.dto.UserInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -37,16 +35,13 @@ public class AuthService implements UserDetailsService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
-    private final AuthenticationManager authenticationManager;
 
     public AuthService(UserRepository userRepository, 
                       PasswordEncoder passwordEncoder, 
-                      JwtUtil jwtUtil, 
-                      AuthenticationManager authenticationManager) {
+                      JwtUtil jwtUtil) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
-        this.authenticationManager = authenticationManager;
     }
 
     /**
@@ -54,17 +49,19 @@ public class AuthService implements UserDetailsService {
      */
     public AuthResponse authenticate(AuthRequest authRequest) {
         try {
-            // Authenticate user credentials
-            authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                    authRequest.email(),
-                    authRequest.password()
-                )
-            );
-
             // Get user details
             User user = userRepository.findByEmail(authRequest.email())
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + authRequest.email()));
+
+            // Check if account is enabled
+            if (!user.isAccountEnabled()) {
+                throw new BadCredentialsException("Account is disabled");
+            }
+
+            // Verify password
+            if (!passwordEncoder.matches(authRequest.password(), user.getPasswordHash())) {
+                throw new BadCredentialsException("Invalid credentials");
+            }
 
             // Update last login timestamp
             user.setLastLogin(LocalDateTime.now());

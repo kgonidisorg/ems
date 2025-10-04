@@ -39,55 +39,37 @@ public class AuthController {
      * User login endpoint
      */
     @PostMapping("/login")
-    public ResponseEntity<?> login(@Valid @RequestBody AuthRequest authRequest) {
-        try {
-            AuthResponse authResponse = authService.authenticate(authRequest);
-            logger.info("User logged in successfully: {}", authRequest.email());
-            return ResponseEntity.ok(authResponse);
-        } catch (Exception e) {
-            logger.error("Login failed for user: {}", authRequest.email(), e);
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(Map.of("error", "Invalid email or password"));
-        }
+    public ResponseEntity<AuthResponse> login(@Valid @RequestBody AuthRequest authRequest) {
+        AuthResponse authResponse = authService.authenticate(authRequest);
+        logger.info("User logged in successfully: {}", authRequest.email());
+        return ResponseEntity.ok(authResponse);
     }
 
     /**
      * User registration endpoint
      */
     @PostMapping("/register")
-    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest registerRequest) {
-        try {
-            // Parse role or default to VIEWER
-            User.UserRole role = User.UserRole.VIEWER;
-            if (registerRequest.role() != null && !registerRequest.role().isEmpty()) {
-                try {
-                    role = User.UserRole.valueOf(registerRequest.role().toUpperCase());
-                } catch (IllegalArgumentException e) {
-                    return ResponseEntity.badRequest()
-                        .body(Map.of("error", "Invalid role: " + registerRequest.role()));
-                }
+    public ResponseEntity<UserInfo> register(@Valid @RequestBody RegisterRequest registerRequest) {
+        // Parse role or default to VIEWER
+        User.UserRole role = User.UserRole.VIEWER;
+        if (registerRequest.role() != null && !registerRequest.role().isEmpty()) {
+            try {
+                role = User.UserRole.valueOf(registerRequest.role().toUpperCase());
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("Invalid role: " + registerRequest.role());
             }
-
-            UserInfo userInfo = authService.registerUser(
-                registerRequest.email(),
-                registerRequest.password(),
-                registerRequest.firstName(),
-                registerRequest.lastName(),
-                role
-            );
-
-            logger.info("User registered successfully: {}", registerRequest.email());
-            return ResponseEntity.status(HttpStatus.CREATED).body(userInfo);
-
-        } catch (IllegalArgumentException e) {
-            logger.warn("Registration failed: {}", e.getMessage());
-            return ResponseEntity.badRequest()
-                .body(Map.of("error", e.getMessage()));
-        } catch (Exception e) {
-            logger.error("Registration failed for user: {}", registerRequest.email(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Map.of("error", "Registration failed"));
         }
+
+        UserInfo userInfo = authService.registerUser(
+            registerRequest.email(),
+            registerRequest.password(),
+            registerRequest.firstName(),
+            registerRequest.lastName(),
+            role
+        );
+
+        logger.info("User registered successfully: {}", registerRequest.email());
+        return ResponseEntity.status(HttpStatus.CREATED).body(userInfo);
     }
 
     /**
