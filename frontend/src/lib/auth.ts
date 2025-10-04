@@ -1,4 +1,4 @@
-import { authService, apiRequest, TokenManager } from './api';
+import { apiGateway, apiRequest, TokenManager } from './api';
 import { LoginRequest, LoginResponse, RegisterRequest, User } from './types';
 
 export class AuthService {
@@ -7,7 +7,7 @@ export class AuthService {
    */
   static async login(credentials: LoginRequest): Promise<LoginResponse> {
     const response = await apiRequest<LoginResponse>(() =>
-      authService.post('/auth/login', credentials)
+      apiGateway.post('/auth/login', credentials)
     );
     
     // Store token and user data
@@ -22,7 +22,7 @@ export class AuthService {
    */
   static async register(userData: RegisterRequest): Promise<User> {
     return await apiRequest<User>(() =>
-      authService.post('/auth/register', userData)
+      apiGateway.post('/auth/register', userData)
     );
   }
 
@@ -33,7 +33,7 @@ export class AuthService {
     try {
       // Call logout endpoint if available
       await apiRequest<void>(() =>
-        authService.post('/auth/logout')
+        apiGateway.post('/auth/logout')
       );
     } catch (error) {
       // Even if the API call fails, we should clear local storage
@@ -50,7 +50,7 @@ export class AuthService {
    */
   static async getCurrentUser(): Promise<User> {
     return await apiRequest<User>(() =>
-      authService.get('/auth/me')
+      apiGateway.get('/auth/me')
     );
   }
 
@@ -84,7 +84,7 @@ export class AuthService {
    */
   static async requestPasswordReset(email: string): Promise<void> {
     await apiRequest<void>(() =>
-      authService.post('/auth/forgot-password', { email })
+      apiGateway.post('/auth/forgot-password', { email })
     );
   }
 
@@ -93,7 +93,7 @@ export class AuthService {
    */
   static async resetPassword(token: string, newPassword: string): Promise<void> {
     await apiRequest<void>(() =>
-      authService.post('/auth/reset-password', { token, newPassword })
+      apiGateway.post('/auth/reset-password', { token, newPassword })
     );
   }
 
@@ -102,7 +102,7 @@ export class AuthService {
    */
   static async changePassword(currentPassword: string, newPassword: string): Promise<void> {
     await apiRequest<void>(() =>
-      authService.post('/auth/change-password', { currentPassword, newPassword })
+      apiGateway.post('/auth/change-password', { currentPassword, newPassword })
     );
   }
 }

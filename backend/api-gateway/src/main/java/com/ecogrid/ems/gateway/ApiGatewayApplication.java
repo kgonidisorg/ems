@@ -8,6 +8,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * 
  * Single entry point for all client requests to EMS microservices.
  * Provides routing, authentication, rate limiting, and request/response
+ * Updated with optimized Docker build caching.
  * transformation.
  */
 @SpringBootApplication

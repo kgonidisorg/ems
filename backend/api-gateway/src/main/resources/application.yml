@@ -14,7 +14,7 @@ spring:
           predicates:
             - Path=/api/auth/**
           filters:
-            - StripPrefix=1
+            - RewritePath=/api/auth/(?<path>.*), /auth/api/v1/auth/$\{path}
             - name: RequestLoggingFilter
 
         # Device Service Routes (Protected)
@@ -69,22 +69,7 @@ spring:
                 name: notification-service
                 fallbackUri: forward:/fallback/notification-service
 
-      # Global CORS configuration
-      globalcors:
-        cors-configurations:
-          "[/**]":
-            allowedOrigins:
-              - "http://localhost:3000"
-              - "https://ems.ecogrid.com"
-            allowedMethods:
-              - GET
-              - POST
-              - PUT
-              - DELETE
-              - OPTIONS
-            allowedHeaders: "*"
-            allowCredentials: true
-            maxAge: 3600
+
 
   redis:
     host: ${REDIS_HOST:redis}

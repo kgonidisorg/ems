@@ -20,8 +20,11 @@ RUN mvn install:install-file \
   -Dpackaging=jar \
   -DpomFile=/tmp/shared-pom.xml
 
-# Copy Maven files
+# Copy Maven files and download dependencies (cached layer)
 COPY device-service/pom.xml .
+RUN mvn dependency:go-offline -B
+
+# Copy source code (this layer changes frequently)
 COPY device-service/src src/
 
 # Build the application

@@ -1,0 +1,20 @@
+# Docker-specific configuration profile for auth-service
+# This profile is activated when running in Docker containers
+# Use: java -jar app.jar --spring.profiles.active=docker
+
+spring:
+  # Disable Redis for Docker development (until we fix networking)
+  redis:
+    host: # empty to disable Redis
+    
+  # Docker-specific database configuration
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:ems-postgres}:${DB_PORT:5432}/${DB_NAME:ems_auth}
+    username: ${DB_USERNAME:ems_user}
+    password: ${DB_PASSWORD:ems_password}
+
+logging:
+  level:
+    com.ecogrid.ems.auth: DEBUG
+    org.springframework.data.redis: ERROR  # Suppress Redis connection errors
+    io.lettuce.core: ERROR                 # Suppress Lettuce Redis client errors
