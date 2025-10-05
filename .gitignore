@@ -140,6 +140,10 @@ backend/**/data/
 **/moquette_store.h2*
 **/.moquette_uuid
 **/checkpoint.properties
+# MQTT test client directories and lock files
+**/device-service-test-*-tcplocalhost*/
+**/test-device-client-*-tcplocalhost*/
+**/.lck
 
 # =====================================================
 # Operating System Files
