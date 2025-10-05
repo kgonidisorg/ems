@@ -26,11 +26,12 @@ spring:
             - StripPrefix=1
             - name: JwtAuthenticationFilter
             - name: RequestLoggingFilter
-            - name: RequestRateLimiter
-              args:
-                redis-rate-limiter.replenishRate: 10
-                redis-rate-limiter.burstCapacity: 20
-                redis-rate-limiter.requested-tokens: 1
+            # Temporarily disabled until Redis is stable
+            # - name: RequestRateLimiter
+            #   args:
+            #     redis-rate-limiter.replenishRate: 10
+            #     redis-rate-limiter.burstCapacity: 20
+            #     redis-rate-limiter.requested-tokens: 1
             - name: CircuitBreaker
               args:
                 name: device-service
@@ -45,11 +46,12 @@ spring:
             - StripPrefix=1
             - name: JwtAuthenticationFilter
             - name: RequestLoggingFilter
-            - name: RequestRateLimiter
-              args:
-                redis-rate-limiter.replenishRate: 5
-                redis-rate-limiter.burstCapacity: 10
-                redis-rate-limiter.requested-tokens: 1
+            # Temporarily disabled until Redis is stable
+            # - name: RequestRateLimiter
+            #   args:
+            #     redis-rate-limiter.replenishRate: 5
+            #     redis-rate-limiter.burstCapacity: 10
+            #     redis-rate-limiter.requested-tokens: 1
             - name: CircuitBreaker
               args:
                 name: analytics-service
