@@ -40,8 +40,8 @@ public class Device {
     @Column(length = 1000)
     private String description;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "device_type", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "device_type_id", nullable = false)
     @NotNull(message = "Device type is required")
     private DeviceType deviceType;
 
@@ -285,17 +285,6 @@ public class Device {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
-    }
-
-    public enum DeviceType {
-        SOLAR_INVERTER,
-        BATTERY_STORAGE,
-        EV_CHARGER,
-        WIND_TURBINE,
-        SMART_METER,
-        WEATHER_STATION,
-        GRID_INTERCONNECT,
-        LOAD_CONTROLLER
     }
 
     public enum DeviceStatus {
