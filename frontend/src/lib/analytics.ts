@@ -80,6 +80,14 @@ export interface DashboardParams {
   siteId?: number;
 }
 
+export interface SiteParams {
+  page?: number;
+  size?: number;
+  sortBy?: 'name' | 'location' | 'capacity';
+  sortDir?: 'asc' | 'desc';
+  search?: string;
+}
+
 export interface EnergyConsumptionParams {
   startDate?: string;
   endDate?: string;
@@ -223,13 +231,13 @@ export const deviceAPI = {
   /**
    * Get all sites
    */
-  getSites: async (): Promise<Site[]> => {
+  getSites: async (params: SiteParams = {}): Promise<Site[]> => {
     const cacheKey = 'sites';
     
     return await requestCache.get(
       cacheKey,
       async () => {
-        const res = await apiRequest(() => apiGateway.get('/sites'));
+        const res = await apiRequest(() => apiGateway.get('/sites', { params }));
         // Gateway may return a paginated response { content: Site[], totalElements, ... }
         if (Array.isArray(res)) {
           return res as Site[];
