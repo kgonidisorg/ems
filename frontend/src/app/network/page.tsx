@@ -12,13 +12,17 @@ import {
     FaClock,
     FaBell,
 } from "react-icons/fa";
-import dynamic from "next/dynamic";
+// import dynamic from "next/dynamic";
 import Modal from "react-modal";
 import Topbar from "@/components/Topbar";
+import { deviceAPI } from "@/lib/analytics";
+import { useAsyncData } from "@/hooks/useAsyncData";
+import { LoadingSpinner, ErrorDisplay } from "@/components/ui/LoadingComponents";
+import type { Site } from "@/lib/types";
 
-const ClusterMapView = dynamic(() => import("@/components/ClusterMapView"), {
-    ssr: false,
-});
+// const ClusterMapView = dynamic(() => import("@/components/ClusterMapView"), {
+//     ssr: false,
+// });
 
 type Cluster = {
     name: string;
@@ -45,84 +49,33 @@ type Cluster = {
 };
 
 const ClusterDashboard: React.FC = () => {
-    const [clusters] = useState<Cluster[]>([
-        {
-            name: "California",
-            lat: 36.7783,
-            lng: -119.4179,
-            avgSOC: 85,
-            evThroughput: 120,
-            solarYield: 500,
-            gridReliance: 30,
-            revenueBreakdown: {
-                ancillary: 200,
-                demandResponse: 150,
-                arbitrage: 100,
-            },
-            carbonOffset: 250,
-            batteryHealth: 90,
-            uptime: 99.5,
-            alarms: { critical: 1, warning: 2, info: 5 },
-            numberOfSystems: 50,
+    // Fetch real sites data
+    const { data: sites, loading, error, refetch } = useAsyncData(() => deviceAPI.getSites());
+    
+    // Transform sites into clusters with additional mock data for demonstration
+    const clusters: Cluster[] = sites ? sites.map((site) => ({
+        name: site.name,
+        lat: site.locationLat,
+        lng: site.locationLng,
+        avgSOC: 75 + Math.random() * 20, // Mock data
+        evThroughput: 90 + Math.random() * 40, // Mock data
+        solarYield: 400 + Math.random() * 200, // Mock data
+        gridReliance: 25 + Math.random() * 25, // Mock data
+        revenueBreakdown: {
+            ancillary: 150 + Math.random() * 100,
+            demandResponse: 100 + Math.random() * 80,
+            arbitrage: 70 + Math.random() * 60,
         },
-        {
-            name: "New York",
-            lat: 43.2994, // Updated latitude
-            lng: -74.2179, // Updated longitude
-            avgSOC: 78,
-            evThroughput: 95,
-            solarYield: 400,
-            gridReliance: 40,
-            revenueBreakdown: {
-                ancillary: 180,
-                demandResponse: 120,
-                arbitrage: 80,
-            },
-            carbonOffset: 200,
-            batteryHealth: 85,
-            uptime: 98.7,
-            alarms: { critical: 0, warning: 1, info: 3 },
-            numberOfSystems: 40, // Added number of systems
+        carbonOffset: 200 + Math.random() * 100, // Mock data
+        batteryHealth: 85 + Math.random() * 10, // Mock data
+        uptime: 98 + Math.random() * 2, // Mock data
+        alarms: { 
+            critical: Math.floor(Math.random() * 3), 
+            warning: Math.floor(Math.random() * 5), 
+            info: Math.floor(Math.random() * 8) 
         },
-        {
-            name: "Michigan",
-            lat: 44.1822, // Updated latitude
-            lng: -84.5068, // Updated longitude
-            avgSOC: 82,
-            evThroughput: 110,
-            solarYield: 450,
-            gridReliance: 35,
-            revenueBreakdown: {
-                ancillary: 190,
-                demandResponse: 140,
-                arbitrage: 90,
-            },
-            carbonOffset: 220,
-            batteryHealth: 88,
-            uptime: 99.0,
-            alarms: { critical: 1, warning: 1, info: 4 },
-            numberOfSystems: 35, // Added number of systems
-        },
-        {
-            name: "Florida",
-            lat: 27.9944, // Correct latitude
-            lng: -81.7603, // Correct longitude
-            avgSOC: 80,
-            evThroughput: 100,
-            solarYield: 420,
-            gridReliance: 38,
-            revenueBreakdown: {
-                ancillary: 170,
-                demandResponse: 130,
-                arbitrage: 85,
-            },
-            carbonOffset: 210,
-            batteryHealth: 87,
-            uptime: 98.5,
-            alarms: { critical: 0, warning: 2, info: 3 },
-            numberOfSystems: 45, // Added number of systems
-        },
-    ]);
+        numberOfSystems: site.devices?.length || (30 + Math.floor(Math.random() * 30)),
+    })) : [];
 
     const [selectedCluster, setSelectedCluster] = useState<Cluster | null>(
         null
@@ -143,6 +96,30 @@ const ClusterDashboard: React.FC = () => {
         Modal.setAppElement("#__next");
     }, []);
 
+    // Loading state
+    if (loading) {
+        return (
+            <div className="flex min-h-screen flex-col bg-gradient-to-br from-slate-900 to-slate-800">
+                <Topbar selected="Network" />
+                <main className="flex-1 flex items-center justify-center">
+                    <LoadingSpinner size="lg" message="Loading network data..." />
+                </main>
+            </div>
+        );
+    }
+
+    // Error state
+    if (error) {
+        return (
+            <div className="flex min-h-screen flex-col bg-gradient-to-br from-slate-900 to-slate-800">
+                <Topbar selected="Network" />
+                <main className="flex-1 flex items-center justify-center">
+                    <ErrorDisplay error={error} onRetry={refetch} />
+                </main>
+            </div>
+        );
+    }
+
     return (
         <div className="flex min-h-screen flex-col bg-gradient-to-br from-slate-900 to-slate-800">
             <Topbar selected="Network" />
@@ -158,16 +135,23 @@ const ClusterDashboard: React.FC = () => {
                             <h2 className="text-2xl font-bold text-white mb-6">
                                 Density Heatmap
                             </h2>
-                            <div className="h-[500px] w-full bg-slate-700 rounded-lg">
-                                <ClusterMapView
-                                    sites={clusters.map((cluster) => ({
-                                        lat: cluster.lat,
-                                        lng: cluster.lng,
-                                        name: cluster.name,
-                                        soc: cluster.avgSOC,
-                                        onClick: () => openModal(cluster),
-                                    }))}
-                                />
+                            <div className="h-[500px] w-full bg-slate-700 rounded-lg flex items-center justify-center">
+                                <div className="text-center">
+                                    <div className="text-green-400 text-6xl mb-4">🗺️</div>
+                                    <h3 className="text-white text-xl mb-2">Network Map</h3>
+                                    <p className="text-slate-400">{clusters.length} sites loaded</p>
+                                    <div className="mt-4 grid grid-cols-2 gap-2">
+                                        {clusters.slice(0, 4).map((cluster, index) => (
+                                            <button
+                                                key={index}
+                                                onClick={() => openModal(cluster)}
+                                                className="bg-slate-800 hover:bg-slate-600 p-2 rounded text-white text-sm transition-colors"
+                                            >
+                                                📍 {cluster.name}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
                             </div>
                         </div>
 

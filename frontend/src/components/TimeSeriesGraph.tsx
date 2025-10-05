@@ -1,3 +1,4 @@
+"use client";
 import React, { useRef, useState, useEffect } from "react";
 import {
     LineChart,
@@ -7,18 +8,29 @@ import {
     Tooltip,
     Legend,
 } from "recharts";
+import { analyticsAPI } from "@/lib/analytics";
+import { useAsyncData } from "@/hooks/useAsyncData";
+import { LoadingSpinner, ErrorDisplay } from "@/components/ui/LoadingComponents";
 
-const data = [
-    { name: "00:00", solar: 400, battery: 240, ev: 240, grid: 400 },
-    { name: "06:00", solar: 300, battery: 139, ev: 221, grid: 300 },
-    { name: "12:00", solar: 200, battery: 980, ev: 229, grid: 200 },
-    { name: "18:00", solar: 278, battery: 390, ev: 200, grid: 278 },
-    { name: "24:00", solar: 189, battery: 480, ev: 218, grid: 189 },
-];
+export interface TimeSeriesGraphProps {
+  siteId?: number;
+  hoursBack?: number;
+}
 
-const TimeSeriesGraph: React.FC = () => {
+const TimeSeriesGraph: React.FC<TimeSeriesGraphProps> = ({ siteId, hoursBack = 24 }) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+
+    // Fetch energy consumption data specifically for time series (avoid duplicate dashboard calls)
+    const { data: energyData, loading, error, refetch } = useAsyncData(
+        () => analyticsAPI.getEnergyConsumption({ 
+            aggregation: 'HOURLY',
+            siteId,
+            startDate: new Date(Date.now() - (hoursBack || 24) * 60 * 60 * 1000).toISOString(),
+            endDate: new Date().toISOString()
+        }),
+        { dependencies: [hoursBack, siteId] }
+    );
 
     useEffect(() => {
         const updateDimensions = () => {
@@ -38,22 +50,40 @@ const TimeSeriesGraph: React.FC = () => {
         };
     }, []);
 
+    // Transform backend data to chart format
+    const chartData = Array.isArray(energyData?.dataPoints) ? energyData!.dataPoints.map(point => ({
+        name: new Date(point.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+        consumption: point.consumption ?? 0,
+        // Deterministic generated value for consistent SSR/CSR
+        generated: (point.consumption ?? 0) * 1.15,
+        carbonSaved: (point.consumption ?? 0) * 0.5,
+        costSavings: (point.consumption ?? 0) * 0.1
+    })) : [];
+
+    if (loading) {
+        return <LoadingSpinner size="md" message="Loading time series data..." />;
+    }
+
+    if (error) {
+        return <ErrorDisplay error={error} onRetry={refetch} />;
+    }
+
     return (
         <div ref={containerRef} style={{ width: "100%", height: "100%" }}>
             <LineChart
                 width={dimensions.width}
                 height={dimensions.height}
-                data={data}
+                data={chartData}
                 margin={{ top: 40, right: 40, left: 20, bottom: 20 }}
             >
                 <XAxis dataKey="name" stroke="#ffffff" />
                 <YAxis stroke="#ffffff" />
                 <Tooltip contentStyle={{ backgroundColor: "#1e293b", borderRadius: "8px", color: "#ffffff" }} />
                 <Legend wrapperStyle={{ color: "#ffffff" }} />
-                <Line type="monotone" dataKey="solar" stroke="#4caf50" strokeWidth={2} />
-                <Line type="monotone" dataKey="battery" stroke="#2196f3" strokeWidth={2} />
-                <Line type="monotone" dataKey="ev" stroke="#ff9800" strokeWidth={2} />
-                <Line type="monotone" dataKey="grid" stroke="#f44336" strokeWidth={2} />
+                <Line type="monotone" dataKey="generated" stroke="#4caf50" strokeWidth={2} name="Energy Generated (kWh)" />
+                <Line type="monotone" dataKey="consumption" stroke="#2196f3" strokeWidth={2} name="Energy Consumed (kWh)" />
+                <Line type="monotone" dataKey="carbonSaved" stroke="#ff9800" strokeWidth={2} name="Carbon Saved (kg)" />
+                <Line type="monotone" dataKey="costSavings" stroke="#f44336" strokeWidth={2} name="Cost Savings ($)" />
             </LineChart>
         </div>
     );

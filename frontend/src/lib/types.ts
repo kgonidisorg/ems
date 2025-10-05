@@ -71,6 +71,69 @@ export interface DashboardStats {
   activeServices: number;
 }
 
+// Backend Analytics Response Types
+export interface TimeSeriesDataPoint {
+  timestamp: string;
+  energyConsumed: number;
+  energyGenerated: number;
+  carbonSaved: number;
+  costSavings: number;
+}
+
+export interface DashboardResponse {
+  totalEnergyConsumed: number;
+  totalEnergyGenerated: number;
+  carbonFootprintReduced: number;
+  costSavings: number;
+  activeSites: number;
+  activeDevices: number;
+  averageEfficiency: number;
+  timeSeriesData: TimeSeriesDataPoint[];
+  siteBreakdown: Record<string, number>;
+  deviceTypeBreakdown: Record<string, number>;
+  lastUpdated: string;
+}
+
+export interface EnergyConsumptionResponse {
+  totalConsumption: number;
+  averageConsumption: number;
+  peakConsumption: number;
+  aggregation: string;
+  periodStart: string;
+  periodEnd: string;
+  dataPoints: Array<{
+    timestamp: string;
+    consumption: number;
+  }>;
+}
+
+export interface CarbonFootprintResponse {
+  totalCarbon: number;
+  averageCarbon: number;
+  peakCarbon: number;
+  periodStart: string;
+  periodEnd: string;
+  dataPoints: Array<{
+    timestamp: string;
+    carbon: number;
+  }>;
+}
+
+export interface FinancialMetricsResponse {
+  totalRevenue: number;
+  totalCosts: number;
+  netProfit: number;
+  roi: number;
+  periodStart: string;
+  periodEnd: string;
+  dataPoints: Array<{
+    timestamp: string;
+    revenue: number;
+    costs: number;
+    profit: number;
+  }>;
+}
+
 // Alert Types
 export interface Alert {
   id: number;

@@ -427,6 +427,48 @@ After identifying multiple unhealthy services in the Docker Compose environment,
 - **Development Experience**: All services now start reliably with `docker-compose up`
 - **Docker Compose**: ✅ All services start successfully with proper networking
 
+## 📝 Local changes (Oct 4, 2025)
+
+This section documents local development fixes made on Oct 4, 2025 while aligning the frontend with recent API Gateway routing changes and consolidating CORS handling. The edits were applied locally and used during development + testing.
+
+Summary of changes
+- Centralized CORS handling in API Gateway (single source of truth)
+  - Added allowed dev origins to `SecurityConfig.corsConfigurationSource()` (e.g. `http://localhost:3000`, `http://localhost:3001`, `http://127.0.0.1:3000`).
+  - Removed a duplicate `CorsWebFilter` implementation that caused duplicate Access-Control-Allow-Origin headers.
+- Removed per-controller wildcard CORS annotations
+  - Removed `@CrossOrigin(origins = "*")` from device and notification controllers to prevent downstream services from adding wildcard CORS headers.
+- Frontend API alignment
+  - Fixed frontend API client to avoid double `/api` prefix (use gateway base `http://localhost:8080/api` and path-only endpoints such as `/auth/login`, `/analytics/...`, `/sites`).
+- Date parameter normalization
+  - Frontend now normalizes ISO timestamps (strips trailing `Z` or timezone offsets) before sending to backend endpoints that accept `LocalDateTime` query params (e.g. energy consumption endpoints).
+- Chart/hydration fixes
+  - Converted chart components to client-only (`"use client"`) and made data handling defensive to avoid SSR/CSR hydration mismatches and runtime TypeErrors (e.g., `sites.map` when sites may be a paginated object).
+- Docker / runtime work
+  - Rebuilt/restarted services with Docker Compose and validated the API Gateway and dependent services are healthy and responding.
+
+Files changed (high-level)
+- backend/api-gateway/src/main/java/com/ecogrid/ems/gateway/config/SecurityConfig.java — added dev allowed origins and CORS exposure headers
+- backend/api-gateway/src/main/java/com/ecogrid/ems/gateway/config/CorsConfig.java — removed duplicate CorsWebFilter (if present)
+- backend/device-service/src/main/java/com/ecogrid/ems/device/controller/SiteController.java — removed `@CrossOrigin`
+- backend/device-service/src/main/java/com/ecogrid/ems/device/controller/DeviceController.java — removed `@CrossOrigin`
+- backend/notification-service/src/main/java/com/ecogrid/ems/notification/controller/AlertController.java — removed `@CrossOrigin`
+- backend/notification-service/src/main/java/com/ecogrid/ems/notification/config/WebSocketConfig.java — (note) uses `setAllowedOriginPatterns("*")` for websockets; consider tightening for production
+- frontend/src/lib/api.ts — base API gateway URL and axios instances
+- frontend/src/lib/analytics.ts — normalized getSites() and getEnergyConsumption() handling
+- frontend/src/components/FinancialDashboard.tsx — made client-only and defensive
+- frontend/src/components/CO2Chart.tsx — made client-only and defensive
+- frontend/src/components/TimeSeriesGraph.tsx — made client-only and defensive
+
+Testing performed
+- Verified API Gateway `/actuator/health` returns single `Access-Control-Allow-Origin` header for `Origin: http://localhost:3000`.
+- Performed authenticated gateway calls (login via `POST /api/auth/login`) and made authenticated requests to `/api/sites` and `/api/analytics/energy/consumption` to verify routing and date parsing.
+- Rebuilt and restarted `device-service` and `notification-service` to remove controller-level CORS headers.
+
+Notes & next actions
+- Commit: these changes are staged in the local git working tree; next step is to create a commit that contains backend, frontend, and docs changes.
+- WebSocket origins: `notification-service/WebSocketConfig.java` still allows all origins for development (`setAllowedOriginPatterns("*")`) — consider restricting to explicit dev hosts before production.
+- Frontend testing: reload `http://localhost:3000` and verify the analytics dashboard loads without CORS or hydration errors. If issues remain, collect browser console stack traces for follow-up.
+
 ## 🎉 Backend Issues Resolution Summary (COMPLETED - October 2025)
 
 ### ✅ Critical Issues RESOLVED

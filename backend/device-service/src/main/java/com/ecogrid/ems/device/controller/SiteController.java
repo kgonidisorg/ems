@@ -24,7 +24,6 @@ import java.util.Optional;
  */
 @RestController
 @RequestMapping("/api/v1/sites")
-@CrossOrigin(origins = "*", maxAge = 3600)
 public class SiteController {
 
     private static final Logger logger = LoggerFactory.getLogger(SiteController.class);

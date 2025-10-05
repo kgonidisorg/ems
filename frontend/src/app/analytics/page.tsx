@@ -33,7 +33,7 @@ const AnalyticsPage: React.FC = () => {
                             Multi-line graphs for solar, battery, EV, grid flows over any period
                         </p>
                         <div className="h-[400px] bg-slate-700 rounded-lg">
-                            <TimeSeriesGraph />
+                            <TimeSeriesGraph hoursBack={24} />
                         </div>
                     </div>
                 </section>

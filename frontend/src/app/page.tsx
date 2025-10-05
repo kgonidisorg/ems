@@ -1,56 +1,131 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import MapView from "@/components/MapView";
 import Topbar from "@/components/Topbar";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { analyticsAPI, deviceAPI } from "@/lib/analytics";
+// import { useWebSocket } from "@/lib/websocket"; // TODO: Re-enable when backend WebSocket is implemented
+import { useThrottle } from "@/hooks/useDebounce";
+import type { DashboardResponse, Site } from "@/lib/types";
 
 export default function Home() {
-    const [totalSites, setTotalSites] = useState(342);
-    const [totalCapacity, setTotalCapacity] = useState(2450);
-    const [carbonSaved, setCarbonSaved] = useState(28500);
-    const [gridRevenue, setGridRevenue] = useState(1540000);
-    const [renewableMix, setRenewableMix] = useState(78);
-    const [activeServices, setActiveServices] = useState(289);
-    const [sites, setSites] = useState<
-        { lat: number; lng: number; name: string }[]
-    >([]);
+    // Real-time dashboard data
+    const [dashboardData, setDashboardData] = useState<DashboardResponse | null>(null);
+    const [sites, setSites] = useState<Site[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
 
-    // Simulate real-time updates
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setCarbonSaved((prev) => prev + Math.random() * 10);
-            setGridRevenue((prev) => prev + Math.random() * 0.5);
-        }, 3000);
-        // Generate sites only on land (roughly within US mainland bounding box, avoiding obvious water areas)
-        const isLand = (lat: number, lng: number) => {
-            // Roughly exclude Gulf of Mexico, Atlantic, and Pacific by bounding box
-            // This is not perfect, but avoids most water
-            if (lng < -124 || lng > -66) return false; // outside continental US
-            if (lat < 25 || lat > 49) return false; // outside continental US
-            // Exclude obvious ocean areas (very rough)
-            if (lng < -117 && lat < 38) return false; // Pacific SW
-            if (lng < -90 && lat < 30) return false; // Gulf of Mexico
-            if (lng > -79 && lat < 40) return false; // Atlantic SE
-            return true;
-        };
+    // TODO: WebSocket for real-time updates (temporarily disabled until backend WebSocket is implemented)
+    // const { connect, disconnect, on, off, isConnected } = useWebSocket();
 
-        const generatedSites = [];
-        while (generatedSites.length < 50) {
-            const lat = 25 + Math.random() * 24; // 25 to 49
-            const lng = -124 + Math.random() * 58; // -124 to -66
-            if (isLand(lat, lng)) {
-                generatedSites.push({
-                    lat,
-                    lng,
-                    name: `Site ${generatedSites.length + 1}`,
-                });
-            }
+    // Fetch initial dashboard data
+    const fetchDashboardData = useCallback(async () => {
+        try {
+            setError(null);
+            const [dashboard, sitesData] = await Promise.all([
+                analyticsAPI.getDashboard({ hoursBack: 24 }),
+                deviceAPI.getSites()
+            ]);
+            
+            setDashboardData(dashboard);
+            setSites(sitesData);
+        } catch (err) {
+            console.error('Failed to fetch dashboard data:', err);
+            setError('Failed to load dashboard data. Please try again.');
+        } finally {
+            setLoading(false);
         }
-        setSites(generatedSites);
-
-        return () => clearInterval(interval);
     }, []);
+
+    // Throttled version to prevent spam
+    const throttledFetchDashboardData = useThrottle(fetchDashboardData, 5000); // 5 seconds minimum between calls
+
+    // TODO: WebSocket message handler (temporarily disabled)
+    // const handleWebSocketMessage = (message: unknown) => {
+    //     const msg = message as { type: string; data: DashboardResponse | Site };
+    //     if (msg?.type === 'DASHBOARD_UPDATE') {
+    //         setDashboardData(msg.data as DashboardResponse);
+    //         setLastUpdate(new Date());
+    //     } else if (msg?.type === 'SITE_UPDATE') {
+    //         setSites(prev => {
+    //             const updated = [...prev];
+    //             const siteData = msg.data as Site;
+    //             const index = updated.findIndex(site => site.id === siteData.id);
+    //             if (index >= 0) {
+    //                 updated[index] = { ...updated[index], ...siteData };
+    //             }
+    //             return updated;
+    //         });
+    //     }
+    // };
+
+    useEffect(() => {
+        // Initial data fetch
+        fetchDashboardData();
+
+        // TODO: Set up WebSocket connection once backend WebSocket server is implemented
+        // connect();
+        // on('message', handleWebSocketMessage);
+
+        // Fallback: refresh data every 5 minutes (since WebSocket is temporarily disabled)
+        const fallbackInterval = setInterval(() => {
+            throttledFetchDashboardData();
+        }, 300000); // 5 minutes
+
+        return () => {
+            // off('message', handleWebSocketMessage);
+            // disconnect();
+            clearInterval(fallbackInterval);
+        };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // Empty dependency array - only run once on mount
+
+    // Loading state
+    if (loading) {
+        return (
+            <ProtectedRoute>
+                <div className="flex min-h-screen flex-col bg-gradient-to-br from-slate-900 to-slate-800">
+                    <Topbar />
+                    <main className="flex-1 flex items-center justify-center">
+                        <div className="text-center">
+                            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-500 mx-auto mb-4"></div>
+                            <p className="text-white text-lg">Loading dashboard data...</p>
+                        </div>
+                    </main>
+                </div>
+            </ProtectedRoute>
+        );
+    }
+
+    // Error state
+    if (error) {
+        return (
+            <ProtectedRoute>
+                <div className="flex min-h-screen flex-col bg-gradient-to-br from-slate-900 to-slate-800">
+                    <Topbar />
+                    <main className="flex-1 flex items-center justify-center">
+                        <div className="text-center">
+                            <div className="text-red-500 text-6xl mb-4">⚠️</div>
+                            <h2 className="text-white text-2xl mb-4">Error Loading Dashboard</h2>
+                            <p className="text-red-400 mb-6">{error}</p>
+                            <button 
+                                onClick={() => {
+                                    setLoading(true);
+                                    setError(null);
+                                    fetchDashboardData();
+                                }}
+                                className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg transition-colors"
+                            >
+                                Retry
+                            </button>
+                        </div>
+                    </main>
+                </div>
+            </ProtectedRoute>
+        );
+    }
 
     return (
         <ProtectedRoute>
@@ -71,10 +146,15 @@ export default function Home() {
                                 </p>
                             </div>
                             <div className="flex items-center gap-4">
-                                <div className="h-3 w-3 bg-green-500 rounded-full animate-pulse"></div>
-                                <span className="text-green-400">
-                                    Live Network Status
+                                <div className="h-3 w-3 rounded-full bg-blue-500"></div>
+                                <span className="text-blue-400">
+                                    Network Status (Static Mode)
                                 </span>
+                                {lastUpdate && (
+                                    <span className="text-slate-400 text-sm">
+                                        Last update: {lastUpdate.toLocaleTimeString()}
+                                    </span>
+                                )}
                             </div>
                         </div>
 
@@ -84,7 +164,11 @@ export default function Home() {
                                 Nationwide Map
                             </h2>
                             <div className="h-[500px] w-full">
-                                <MapView sites={sites} />
+                                <MapView sites={sites.map(site => ({
+                                    lat: site.locationLat,
+                                    lng: site.locationLng,
+                                    name: site.name
+                                }))} />
                             </div>
                         </div>
 
@@ -112,7 +196,7 @@ export default function Home() {
                                             Network Capacity
                                         </h3>
                                         <p className="text-3xl text-white">
-                                            {totalCapacity.toLocaleString()} MW
+                                            {dashboardData ? (dashboardData.totalEnergyGenerated + dashboardData.totalEnergyConsumed).toLocaleString() : '0'} MW
                                         </p>
                                     </div>
                                 </div>
@@ -146,7 +230,7 @@ export default function Home() {
                                             Carbon Offset
                                         </h3>
                                         <p className="text-3xl text-white">
-                                            {(carbonSaved / 1000).toFixed(1)}k
+                                            {dashboardData ? (dashboardData.carbonFootprintReduced / 1000).toFixed(1) : '0'}k
                                             tons
                                         </p>
                                     </div>
@@ -184,7 +268,7 @@ export default function Home() {
                                         </h3>
                                         <p className="text-3xl text-white">
                                             $
-                                            {(gridRevenue / 1000000).toFixed(1)}
+                                            {dashboardData ? (dashboardData.costSavings / 1000000).toFixed(1) : '0'}
                                             M
                                         </p>
                                     </div>
@@ -207,7 +291,7 @@ export default function Home() {
                                             Active Sites
                                         </h3>
                                         <p className="text-2xl text-white">
-                                            {totalSites}
+                                            {dashboardData?.activeSites || 0}
                                         </p>
                                         <div className="flex items-center gap-2 mt-2">
                                             <div className="h-2 w-2 bg-green-500 rounded-full"></div>
@@ -221,7 +305,7 @@ export default function Home() {
                                             Grid Services
                                         </h3>
                                         <p className="text-2xl text-white">
-                                            {activeServices}
+                                            {dashboardData?.activeDevices || 0}
                                         </p>
                                         <div className="flex items-center gap-2 mt-2">
                                             <div className="h-2 w-2 bg-yellow-500 rounded-full"></div>
@@ -243,7 +327,7 @@ export default function Home() {
                                             <div
                                                 className="h-full bg-gradient-to-r from-green-500 to-green-400"
                                                 style={{
-                                                    width: `${renewableMix}%`,
+                                                    width: `${dashboardData?.averageEfficiency || 0}%`,
                                                 }}
                                             ></div>
                                         </div>
@@ -254,7 +338,7 @@ export default function Home() {
                                                     Solar + Storage
                                                 </span>
                                                 <span className="text-green-400 ml-auto">
-                                                    {renewableMix}%
+                                                    {dashboardData?.averageEfficiency.toFixed(1) || '0'}%
                                                 </span>
                                             </div>
                                             <div className="flex items-center gap-2">
@@ -263,7 +347,7 @@ export default function Home() {
                                                     Grid Power
                                                 </span>
                                                 <span className="text-slate-400 ml-auto">
-                                                    {100 - renewableMix}%
+                                                    {dashboardData ? (100 - dashboardData.averageEfficiency).toFixed(1) : '100'}%
                                                 </span>
                                             </div>
                                         </div>

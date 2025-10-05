@@ -1,18 +1,25 @@
+"use client";
 import React, { useEffect, useRef, useState } from "react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts";
+import { analyticsAPI } from "@/lib/analytics";
+import { useAsyncData } from "@/hooks/useAsyncData";
+import { LoadingSpinner, ErrorDisplay } from "@/components/ui/LoadingComponents";
 
-const data = [
-    { name: "Jan", co2: 400 },
-    { name: "Feb", co2: 300 },
-    { name: "Mar", co2: 500 },
-    { name: "Apr", co2: 700 },
-    { name: "May", co2: 600 },
-    { name: "Jun", co2: 800 },
-];
+export interface CO2ChartProps {
+  siteId?: number;
+  startDate?: string;
+  endDate?: string;
+}
 
-const CO2Chart: React.FC = () => {
+const CO2Chart: React.FC<CO2ChartProps> = ({ siteId, startDate, endDate }) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+
+    // Fetch carbon footprint data
+    const { data: carbonData, loading, error, refetch } = useAsyncData(
+        () => analyticsAPI.getCarbonFootprint({ siteId, startDate, endDate }),
+        { dependencies: [siteId, startDate, endDate] }
+    );
 
     useEffect(() => {
         const updateDimensions = () => {
@@ -31,12 +38,27 @@ const CO2Chart: React.FC = () => {
             window.removeEventListener("resize", updateDimensions);
         };
     }, []);
+
+    // Transform data for chart (defensive)
+    const chartData = Array.isArray(carbonData?.dataPoints) ? carbonData!.dataPoints.map(point => ({
+        name: new Date(point.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        co2: point.carbon ?? 0
+    })) : [];
+
+    if (loading) {
+        return <LoadingSpinner size="sm" message="Loading carbon data..." />;
+    }
+
+    if (error) {
+        return <ErrorDisplay error={error} onRetry={refetch} />;
+    }
+
     return (
         <div ref={containerRef} className="w-full h-full">
             <BarChart
                 width={dimensions.width}
                 height={dimensions.height}
-                data={data}
+                data={chartData}
                 margin={{ top: 40, right: 40, left: 0, bottom: 20 }}
             >
                 <XAxis dataKey="name" stroke="#ffffff" />
