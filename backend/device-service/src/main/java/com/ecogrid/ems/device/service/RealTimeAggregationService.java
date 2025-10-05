@@ -2,6 +2,7 @@ package com.ecogrid.ems.device.service;
 
 import com.ecogrid.ems.device.entity.Device;
 import com.ecogrid.ems.device.entity.DeviceStatusCache;
+import com.ecogrid.ems.device.repository.DeviceRepository;
 import com.ecogrid.ems.device.repository.DeviceStatusCacheRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -29,16 +30,19 @@ public class RealTimeAggregationService {
     private static final Logger logger = LoggerFactory.getLogger(RealTimeAggregationService.class);
 
     private final DeviceStatusCacheRepository statusCacheRepository;
+    private final DeviceRepository deviceRepository;
     private final SimpMessagingTemplate messagingTemplate;
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final ObjectMapper objectMapper;
 
     @Autowired
     public RealTimeAggregationService(DeviceStatusCacheRepository statusCacheRepository,
+                                     DeviceRepository deviceRepository,
                                      SimpMessagingTemplate messagingTemplate,
                                      KafkaTemplate<String, Object> kafkaTemplate,
                                      ObjectMapper objectMapper) {
         this.statusCacheRepository = statusCacheRepository;
+        this.deviceRepository = deviceRepository;
         this.messagingTemplate = messagingTemplate;
         this.kafkaTemplate = kafkaTemplate;
         this.objectMapper = objectMapper;
@@ -384,7 +388,9 @@ public class RealTimeAggregationService {
     private List<DeviceStatusCache> getBMSDevicesForSite(Long siteId) {
         return statusCacheRepository.findBySiteId(siteId).stream()
             .filter(d -> {
-                Device device = d.getDevice();
+                Optional<Device> deviceOpt = deviceRepository.findById(d.getDeviceId());
+                if (deviceOpt.isEmpty()) return false;
+                Device device = deviceOpt.get();
                 return device.getDeviceType().getName().toUpperCase().contains("BMS") ||
                        device.getDeviceType().getName().toUpperCase().contains("BATTERY");
             })
@@ -394,7 +400,9 @@ public class RealTimeAggregationService {
     private List<DeviceStatusCache> getSolarDevicesForSite(Long siteId) {
         return statusCacheRepository.findBySiteId(siteId).stream()
             .filter(d -> {
-                Device device = d.getDevice();
+                Optional<Device> deviceOpt = deviceRepository.findById(d.getDeviceId());
+                if (deviceOpt.isEmpty()) return false;
+                Device device = deviceOpt.get();
                 return device.getDeviceType().getName().toUpperCase().contains("SOLAR") ||
                        device.getDeviceType().getName().toUpperCase().contains("INVERTER");
             })
@@ -404,7 +412,9 @@ public class RealTimeAggregationService {
     private List<DeviceStatusCache> getEVChargerDevicesForSite(Long siteId) {
         return statusCacheRepository.findBySiteId(siteId).stream()
             .filter(d -> {
-                Device device = d.getDevice();
+                Optional<Device> deviceOpt = deviceRepository.findById(d.getDeviceId());
+                if (deviceOpt.isEmpty()) return false;
+                Device device = deviceOpt.get();
                 return device.getDeviceType().getName().toUpperCase().contains("EV") ||
                        device.getDeviceType().getName().toUpperCase().contains("CHARGER");
             })

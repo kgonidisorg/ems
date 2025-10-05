@@ -20,14 +20,8 @@ import java.util.Map;
 public class DeviceStatusCache {
 
     @Id
-    private Long deviceId; // Same as device ID, one-to-one relationship
-
-    @OneToOne(fetch = FetchType.LAZY)
-    @MapsId
-    @JoinColumn(name = "device_id")
-    private Device device;
-
-    @Column(name = "last_seen")
+    @Column(name = "device_id")
+    private Long deviceId;    @Column(name = "last_seen")
     private LocalDateTime lastSeen;
 
     @Enumerated(EnumType.STRING)
@@ -53,8 +47,12 @@ public class DeviceStatusCache {
     public DeviceStatusCache() {}
 
     public DeviceStatusCache(Device device, DeviceStatus status) {
-        this.device = device;
         this.deviceId = device.getId();
+        this.status = status;
+    }
+
+    public DeviceStatusCache(Long deviceId, DeviceStatus status) {
+        this.deviceId = deviceId;
         this.status = status;
     }
 
@@ -67,16 +65,7 @@ public class DeviceStatusCache {
         this.deviceId = deviceId;
     }
 
-    public Device getDevice() {
-        return device;
-    }
 
-    public void setDevice(Device device) {
-        this.device = device;
-        if (device != null) {
-            this.deviceId = device.getId();
-        }
-    }
 
     public LocalDateTime getLastSeen() {
         return lastSeen;

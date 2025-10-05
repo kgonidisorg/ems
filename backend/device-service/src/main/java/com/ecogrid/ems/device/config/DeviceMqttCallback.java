@@ -34,19 +34,25 @@ public class DeviceMqttCallback implements MqttCallback {
     public void messageArrived(String topic, MqttMessage message) throws Exception {
         try {
             String payload = new String(message.getPayload());
-            logger.debug("MQTT message received on topic: {} with payload: {}", topic, payload);
+            logger.info("🔔 MQTT MESSAGE RECEIVED! Topic: {} | Payload: {}", topic, payload);
+            logger.info("🔍 Message details - QoS: {}, Retained: {}, Duplicate: {}", 
+                message.getQos(), message.isRetained(), message.isDuplicate());
             
             // Process telemetry messages
             if (topic.contains("/telemetry/")) {
+                logger.info("📊 Processing telemetry message for topic: {}", topic);
                 telemetryProcessor.processTelemetryMessage(topic, payload);
+                logger.info("✅ Telemetry processing completed for topic: {}", topic);
             } else if (topic.contains("/alerts/")) {
                 // Handle alert messages
+                logger.info("🚨 Processing alert message for topic: {}", topic);
                 processAlertMessage(topic, payload);
             } else if (topic.contains("/status")) {
                 // Handle device status messages
+                logger.info("📡 Processing status message for topic: {}", topic);
                 processStatusMessage(topic, payload);
             } else {
-                logger.debug("Unhandled MQTT topic: {}", topic);
+                logger.info("❓ Unhandled MQTT topic: {}", topic);
             }
             
         } catch (Exception e) {

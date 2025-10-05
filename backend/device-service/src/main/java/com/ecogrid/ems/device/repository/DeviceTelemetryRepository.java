@@ -47,6 +47,13 @@ public interface DeviceTelemetryRepository extends JpaRepository<DeviceTelemetry
     );
 
     /**
+     * Find telemetry data by device serial number
+     */
+    @Query("SELECT dt FROM DeviceTelemetry dt WHERE dt.device.serialNumber = :serialNumber " +
+           "ORDER BY dt.timestamp DESC")
+    List<DeviceTelemetry> findByDeviceSerialNumberOrderByTimestampDesc(@Param("serialNumber") String serialNumber);
+
+    /**
      * Find telemetry data for devices of a specific type within a time range
      */
     @Query("SELECT dt FROM DeviceTelemetry dt WHERE dt.device.deviceType.name = :deviceTypeName " +

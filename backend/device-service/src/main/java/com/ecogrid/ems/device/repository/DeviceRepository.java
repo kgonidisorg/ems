@@ -1,6 +1,7 @@
 package com.ecogrid.ems.device.repository;
 
 import com.ecogrid.ems.device.entity.Device;
+import com.ecogrid.ems.device.entity.DeviceType;
 import com.ecogrid.ems.device.entity.Site;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -43,7 +44,7 @@ public interface DeviceRepository extends JpaRepository<Device, Long> {
     /**
      * Find devices by type
      */
-    List<Device> findByDeviceType(Device.DeviceType deviceType);
+    List<Device> findByDeviceType(DeviceType deviceType);
 
     /**
      * Find devices by status
@@ -110,7 +111,7 @@ public interface DeviceRepository extends JpaRepository<Device, Long> {
      * Count devices by type
      */
     @Query("SELECT COUNT(d) FROM Device d WHERE d.deviceType = :deviceType")
-    long countByDeviceType(@Param("deviceType") Device.DeviceType deviceType);
+    long countByDeviceType(@Param("deviceType") DeviceType deviceType);
 
     /**
      * Find devices with their site information

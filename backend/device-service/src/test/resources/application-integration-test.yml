@@ -1,0 +1,61 @@
+# Integration Test Configuration
+spring:
+  application:
+    name: device-service-test
+  
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        
+  kafka:
+    consumer:
+      group-id: device-service-test-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+# MQTT Configuration (will be overridden by TestContainers)
+mqtt:
+  client:
+    id: ems-device-service-test
+  topic:
+    device-telemetry: "ecogrid/sites/+/devices/+/telemetry/+"
+
+# Logging
+logging:
+  level:
+    com.ecogrid.ems: DEBUG
+    # Suppress Kafka-related logging
+    org.springframework.kafka: WARN
+    org.testcontainers: WARN
+    kafka: ERROR
+    org.apache.kafka: ERROR
+    state.change.logger: OFF
+    kafka.server: ERROR
+    kafka.coordinator: ERROR
+    kafka.log: ERROR
+    kafka.network: ERROR
+    kafka.raft: ERROR
+    # Additional Kafka suppressions
+    kafka.server.BrokerLifecycleManager: OFF
+    kafka.server.KafkaRequestHandlerPool: OFF
+    kafka.server.ReplicaManager: OFF
+    kafka.server.ReplicaFetcherManager: OFF
+    kafka.server.AddPartitionsToTxnManager: OFF
+    kafka.coordinator.group.GroupCoordinator: OFF
+    kafka.coordinator.group.GroupMetadataManager: OFF
+    kafka.coordinator.transaction.TransactionCoordinator: OFF
+    kafka.coordinator.transaction.TransactionStateManager: OFF
+    kafka.log.LogManager: OFF
+    kafka.log.LogCleaner: OFF
+    kafka.network.SocketServer: OFF
+    OperationPurgatory: OFF
+    ThrottledChannelReaper: OFF
+    ExpirationService: OFF

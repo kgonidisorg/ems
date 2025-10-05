@@ -169,8 +169,7 @@ public class DeviceController {
     @GetMapping("/type/{type}")
     public ResponseEntity<?> getDevicesByType(@PathVariable String type) {
         try {
-            Device.DeviceType deviceType = Device.DeviceType.valueOf(type.toUpperCase());
-            List<DeviceResponse> devices = deviceService.getDevicesByType(deviceType);
+            List<DeviceResponse> devices = deviceService.getDevicesByTypeName(type);
             return ResponseEntity.ok(devices);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest()

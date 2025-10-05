@@ -150,6 +150,13 @@ EcoGrid EMS is a comprehensive energy management system designed to monitor, con
   - Controller tests covering all CRUD operations
   - Pagination, search, and filtering functionality
   - MockMvc integration with Spring Boot testing
+  - **DeviceTelemetryPipelineTest**: MQTT → Kafka → Database integration testing
+    - ✅ Complete telemetry persistence and DeviceStatusCache updates
+    - ✅ BMSTelemetryDTO parsing with proper timestamp handling
+    - ✅ Kafka logging suppression for clean test output
+    - ⚠️ **Coverage Gap**: Analytics aggregation pipeline not tested (RealTimeAggregationService)
+    - ⚠️ **Coverage Gap**: WebSocket real-time broadcasting functionality mocked only
+    - ⚠️ **Coverage Gap**: Multi-device-type processing (Solar Array, EV Charger) not covered
 
 - **✅ Analytics Service Testing**: 15/15 tests passing
   - Controller endpoint testing with time-based filtering
@@ -335,10 +342,22 @@ class WebSocketClient {
 - **EMSAnalyticsService**: Service layer with mock data implementation ready for database integration
 - **API Design**: RESTful endpoints with error handling, query parameters, and JSON response optimization
 
+**✅ 5.5 Integration Testing Enhancement (COMPLETED - October 2025)**
+- **DeviceTelemetryPipelineTest**: Comprehensive MQTT → Kafka → Database integration testing
+  - End-to-end telemetry processing with embedded MQTT broker and Kafka
+  - BMSTelemetryDTO parsing with @JsonFormat timestamp compatibility
+  - DeviceStatusCache updates and proper transaction handling
+  - Kafka logging suppression for clean test output (logback-test.xml)
+- **Pipeline Coverage Analysis**: Identified testing gaps in analytics aggregation and WebSocket broadcasting
+- **TestContainers Configuration**: PostgreSQL, Kafka, and MQTT broker integration
+- **Debug Infrastructure**: Enhanced logging with emoji markers for data flow tracing
+
 **🚧 Remaining Phase 5 Tasks**
-- **5.5 WebSocket Real-time Updates**: Enhance Notification Service WebSocket with site-specific channels
-- **5.6 Frontend EMS Page Integration**: Replace mock data with real API calls and WebSocket subscriptions
-- **5.7 Alert Processing System**: Implement alert threshold checking and site-level aggregation
+- **5.6 Analytics Integration Testing**: Add RealTimeAggregationService test coverage
+- **5.7 WebSocket Real-time Testing**: Replace mocked WebSocket with actual integration tests  
+- **5.8 Multi-Device-Type Testing**: Extend pipeline testing to Solar Array and EV Charger devices
+- **5.9 Frontend EMS Page Integration**: Replace mock data with real API calls and WebSocket subscriptions
+- **5.10 Alert Processing System**: Implement alert threshold checking and site-level aggregation
 
 #### 📋 Phase 5 Implementation Details (October 2025)
 
@@ -2009,7 +2028,7 @@ modules/
 Total Tests: 170+ across all services
 ├── Auth Service: 44 tests (Unit + Integration + Controller)
 ├── API Gateway: 29 tests (Security + Routing + Circuit Breakers)
-├── Device Service: 17 tests (CRUD + Validation)
+├── Device Service: 17 tests (CRUD + Validation + Pipeline Integration)
 ├── Analytics Service: 15 tests (Controller + Mock Data)
 └── Notification Service: 65 tests (Kafka + PostgreSQL + WebSocket)
 ```
@@ -2019,6 +2038,36 @@ Total Tests: 170+ across all services
 - **MockMvc**: Spring Security test support with authentication context
 - **JUnit 5 & Mockito**: Comprehensive unit and integration testing
 - **CI/CD Integration**: Automated test execution on all commits
+
+### Current Testing Status (October 2025)
+
+#### ✅ MQTT → Kafka → Database Pipeline Testing
+- **DeviceTelemetryPipelineTest**: End-to-end integration testing with TestContainers
+- **Coverage**: MQTT message ingestion, Kafka processing, database persistence
+- **Infrastructure**: Embedded Kafka, PostgreSQL containers, MQTT broker
+- **Validation**: Telemetry data parsing, DeviceStatusCache updates, proper timestamp handling
+
+#### ⚠️ Identified Testing Gaps
+1. **Analytics Aggregation Pipeline**: RealTimeAggregationService processing not tested
+   - Missing: Site-level BMS, Solar Array, and EV Charger aggregations
+   - Missing: Kafka topic publishing for analytics service consumption
+   - Missing: Real-time metrics calculation verification
+
+2. **WebSocket Real-time Broadcasting**: Currently mocked in integration tests
+   - Missing: Actual WebSocket connection testing
+   - Missing: Real-time dashboard update verification
+   - Missing: Site-specific channel broadcasting validation
+
+3. **Multi-Device-Type Processing**: Only BMS device type currently tested
+   - Missing: Solar Array telemetry processing and aggregation
+   - Missing: EV Charger telemetry handling and site metrics
+   - Missing: Cross-device-type aggregation testing
+
+#### 📋 Recommended Test Enhancements
+- **Analytics Integration Tests**: Add RealTimeAggregationService coverage
+- **WebSocket Integration Tests**: Replace mocked WebSocket with real testing
+- **Multi-Device Tests**: Extend pipeline testing to all device types
+- **Cross-Service Integration**: Test complete Analytics Service pipeline
 
 ## 🎯 Success Metrics
 

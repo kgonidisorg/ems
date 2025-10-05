@@ -135,6 +135,12 @@ coverage
 .grunt
 bower_components
 
+# MQTT Broker data (Moquette)
+backend/**/data/
+**/moquette_store.h2*
+**/.moquette_uuid
+**/checkpoint.properties
+
 # =====================================================
 # Operating System Files
 # =====================================================

@@ -3,8 +3,10 @@ package com.ecogrid.ems.device.service;
 import com.ecogrid.ems.device.dto.DeviceRequest;
 import com.ecogrid.ems.device.dto.DeviceResponse;
 import com.ecogrid.ems.device.entity.Device;
+import com.ecogrid.ems.device.entity.DeviceType;
 import com.ecogrid.ems.device.entity.Site;
 import com.ecogrid.ems.device.repository.DeviceRepository;
+import com.ecogrid.ems.device.repository.DeviceTypeRepository;
 import com.ecogrid.ems.device.repository.SiteRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,11 +33,13 @@ public class DeviceService {
     private static final Logger logger = LoggerFactory.getLogger(DeviceService.class);
 
     private final DeviceRepository deviceRepository;
+    private final DeviceTypeRepository deviceTypeRepository;
     private final SiteRepository siteRepository;
     private final DeviceEventService deviceEventService;
 
-    public DeviceService(DeviceRepository deviceRepository, SiteRepository siteRepository, DeviceEventService deviceEventService) {
+    public DeviceService(DeviceRepository deviceRepository, DeviceTypeRepository deviceTypeRepository, SiteRepository siteRepository, DeviceEventService deviceEventService) {
         this.deviceRepository = deviceRepository;
+        this.deviceTypeRepository = deviceTypeRepository;
         this.siteRepository = siteRepository;
         this.deviceEventService = deviceEventService;
     }
@@ -69,11 +73,9 @@ public class DeviceService {
 
         // Set device type
         if (request.deviceType() != null && !request.deviceType().isEmpty()) {
-            try {
-                device.setDeviceType(Device.DeviceType.valueOf(request.deviceType().toUpperCase()));
-            } catch (IllegalArgumentException e) {
-                throw new IllegalArgumentException("Invalid device type: " + request.deviceType());
-            }
+            DeviceType deviceType = deviceTypeRepository.findByName(request.deviceType().toUpperCase())
+                .orElseThrow(() -> new IllegalArgumentException("Invalid device type: " + request.deviceType()));
+            device.setDeviceType(deviceType);
         }
 
         // Set status if provided
@@ -159,10 +161,20 @@ public class DeviceService {
      * Get devices by type
      */
     @Transactional(readOnly = true)
-    public List<DeviceResponse> getDevicesByType(Device.DeviceType deviceType) {
+    public List<DeviceResponse> getDevicesByType(DeviceType deviceType) {
         return deviceRepository.findByDeviceType(deviceType).stream()
                 .map(this::mapToDeviceResponse)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Get devices by type name
+     */
+    @Transactional(readOnly = true)
+    public List<DeviceResponse> getDevicesByTypeName(String typeName) {
+        DeviceType deviceType = deviceTypeRepository.findByName(typeName.toUpperCase())
+            .orElseThrow(() -> new IllegalArgumentException("Invalid device type: " + typeName));
+        return getDevicesByType(deviceType);
     }
 
     /**
@@ -213,11 +225,9 @@ public class DeviceService {
 
         // Update device type if provided
         if (request.deviceType() != null && !request.deviceType().isEmpty()) {
-            try {
-                device.setDeviceType(Device.DeviceType.valueOf(request.deviceType().toUpperCase()));
-            } catch (IllegalArgumentException e) {
-                throw new IllegalArgumentException("Invalid device type: " + request.deviceType());
-            }
+            DeviceType deviceType = deviceTypeRepository.findByName(request.deviceType().toUpperCase())
+                .orElseThrow(() -> new IllegalArgumentException("Invalid device type: " + request.deviceType()));
+            device.setDeviceType(deviceType);
         }
 
         // Update status if provided
@@ -320,8 +330,9 @@ public class DeviceService {
         long errorDevices = deviceRepository.countByStatus(Device.DeviceStatus.ERROR);
 
         Map<String, Long> devicesByType = new HashMap<>();
-        for (Device.DeviceType type : Device.DeviceType.values()) {
-            devicesByType.put(type.name(), deviceRepository.countByDeviceType(type));
+        List<DeviceType> deviceTypes = deviceTypeRepository.findAll();
+        for (DeviceType type : deviceTypes) {
+            devicesByType.put(type.getName(), deviceRepository.countByDeviceType(type));
         }
 
         return new DeviceStatistics(totalDevices, onlineDevices, offlineDevices, maintenanceDevices, errorDevices, devicesByType);
@@ -343,7 +354,7 @@ public class DeviceService {
                 device.getSerialNumber(),
                 device.getName(),
                 device.getDescription(),
-                device.getDeviceType().name(),
+                device.getDeviceType().getName(),
                 device.getModel(),
                 device.getManufacturer(),
                 device.getFirmwareVersion(),

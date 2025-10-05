@@ -18,10 +18,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -29,7 +32,7 @@ import java.util.Optional;
  * Service for processing device telemetry data from MQTT messages
  */
 @Service
-@Transactional
+@Transactional(propagation = Propagation.REQUIRES_NEW)
 public class DeviceTelemetryProcessor {
 
     private static final Logger logger = LoggerFactory.getLogger(DeviceTelemetryProcessor.class);
@@ -40,6 +43,7 @@ public class DeviceTelemetryProcessor {
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final ObjectMapper objectMapper;
     private final AlertService alertService;
+    private final TransactionTemplate transactionTemplate;
 
     @Autowired
     public DeviceTelemetryProcessor(DeviceRepository deviceRepository,
@@ -47,13 +51,15 @@ public class DeviceTelemetryProcessor {
                                    DeviceStatusCacheRepository statusCacheRepository,
                                    KafkaTemplate<String, Object> kafkaTemplate,
                                    ObjectMapper objectMapper,
-                                   AlertService alertService) {
+                                   AlertService alertService,
+                                   TransactionTemplate transactionTemplate) {
         this.deviceRepository = deviceRepository;
         this.telemetryRepository = telemetryRepository;
         this.statusCacheRepository = statusCacheRepository;
         this.kafkaTemplate = kafkaTemplate;
         this.objectMapper = objectMapper;
         this.alertService = alertService;
+        this.transactionTemplate = transactionTemplate;
     }
 
     /**
@@ -62,34 +68,41 @@ public class DeviceTelemetryProcessor {
      */
     public void processTelemetryMessage(String topic, String payload) {
         try {
-            logger.debug("Processing telemetry message from topic: {}", topic);
+            logger.info("🔄 Processing telemetry message from topic: {}", topic);
+            logger.info("📝 Payload: {}", payload);
             
             // Parse topic metadata
             TopicMetadata metadata = parseTopicMetadata(topic);
             if (metadata == null) {
-                logger.warn("Invalid topic format: {}", topic);
+                logger.warn("❌ Invalid topic format: {}", topic);
                 return;
             }
+            logger.info("✅ Parsed topic - Site: {}, Device Serial: {}, Data Type: {}", 
+                metadata.getSiteId(), metadata.getDeviceSerial(), metadata.getDataType());
 
-            // Find device
-            Optional<Device> deviceOpt = deviceRepository.findById(metadata.getDeviceId());
+            // Find device by serial number
+            Optional<Device> deviceOpt = deviceRepository.findBySerialNumber(metadata.getDeviceSerial());
             if (deviceOpt.isEmpty()) {
-                logger.warn("Device not found: {}", metadata.getDeviceId());
+                logger.warn("❌ Device not found with serial number: {}", metadata.getDeviceSerial());
                 return;
             }
 
             Device device = deviceOpt.get();
+            logger.info("✅ Found device: {} (Type: {})", device.getSerialNumber(), device.getDeviceType().getName());
+            
             if (!isDeviceActive(device)) {
-                logger.debug("Device {} is not active, skipping telemetry", device.getId());
+                logger.warn("⚠️ Device {} is not active, skipping telemetry", device.getSerialNumber());
                 return;
             }
 
             // Parse telemetry based on device type
+            logger.info("🔍 Attempting to parse telemetry for device type: {}", device.getDeviceType().getName());
             BaseTelemetryDTO telemetryDTO = parseTelemetryByDeviceType(device.getDeviceType(), payload);
             if (telemetryDTO == null) {
-                logger.warn("Failed to parse telemetry for device type: {}", device.getDeviceType().getName());
+                logger.warn("❌ Failed to parse telemetry for device type: {}", device.getDeviceType().getName());
                 return;
             }
+            logger.info("✅ Successfully parsed telemetry DTO");
 
             // Set device ID and timestamp if not provided
             telemetryDTO.setDeviceId(device.getId());
@@ -98,19 +111,41 @@ public class DeviceTelemetryProcessor {
             }
 
             // Store raw telemetry
+            logger.info("💾 Creating and saving telemetry entity...");
             DeviceTelemetry telemetry = createTelemetryEntity(device, telemetryDTO);
-            telemetryRepository.save(telemetry);
+            logger.info("📊 Telemetry entity created with device ID: {} and timestamp: {}", telemetry.getDevice().getId(), telemetry.getTimestamp());
+            DeviceTelemetry savedTelemetry = telemetryRepository.save(telemetry);
+            logger.info("✅ Saved telemetry with ID: {} for device: {} at timestamp: {}", 
+                savedTelemetry.getId(), savedTelemetry.getDevice().getSerialNumber(), savedTelemetry.getTimestamp());
+            logger.info("💾 Saved telemetry data: {}", savedTelemetry.getData());
+            logger.info("💾 Saved telemetry voltage: {}, current: {}", 
+                savedTelemetry.getData() != null ? savedTelemetry.getData().get("voltage") : "NULL_DATA",
+                savedTelemetry.getData() != null ? savedTelemetry.getData().get("current") : "NULL_DATA");
+            
+            // Verify telemetry was saved by retrieving records for this device  
+            List<DeviceTelemetry> deviceTelemetryRecords = telemetryRepository.findByDeviceSerialNumberOrderByTimestampDesc(device.getSerialNumber());
+            logger.info("📊 Total telemetry records for device {}: {}", device.getSerialNumber(), deviceTelemetryRecords.size());
+            
+            // Debug the retrieved records
+            if (!deviceTelemetryRecords.isEmpty()) {
+                DeviceTelemetry firstRecord = deviceTelemetryRecords.get(0);
+                logger.info("🔍 First retrieved record ID: {}, data: {}", firstRecord.getId(), firstRecord.getData());
+                if (firstRecord.getData() != null) {
+                    logger.info("🔍 First record voltage: {}, current: {}", 
+                        firstRecord.getData().get("voltage"), firstRecord.getData().get("current"));
+                }
+            }
 
-            // Update device status cache
-            updateDeviceStatusCache(device, telemetryDTO);
-
-            // Publish to Kafka for real-time processing
+            // Publish to Kafka for real-time processing (should not affect transaction)
             publishToKafka(device, telemetryDTO);
 
-            // Check for alert conditions
-            checkAlertConditions(device, telemetryDTO);
+            // Update device status cache in separate transaction (fixed @MapsId issue)
+            updateDeviceStatusCache(device, telemetryDTO);
 
-            logger.debug("Successfully processed telemetry for device: {}", device.getId());
+            // Check for alert conditions in separate transaction
+            checkAlertConditionsInSeparateTransaction(device, telemetryDTO);
+
+            logger.info("🎉 Successfully processed telemetry for device: {}", device.getSerialNumber());
 
         } catch (Exception e) {
             logger.error("Error processing telemetry message from topic: " + topic, e);
@@ -122,16 +157,17 @@ public class DeviceTelemetryProcessor {
      */
     private TopicMetadata parseTopicMetadata(String topic) {
         try {
-            // Topic format: ecogrid/sites/{siteId}/devices/{deviceId}/telemetry/{dataType}
+            // Topic format: ecogrid/sites/{siteId}/devices/{deviceSerial}/telemetry/{dataType}
             String[] parts = topic.split("/");
             if (parts.length < 6 || !"ecogrid".equals(parts[0]) || !"sites".equals(parts[1]) 
                 || !"devices".equals(parts[3]) || !"telemetry".equals(parts[5])) {
+                logger.warn("Invalid topic format: {}, expected: ecogrid/sites/{{siteId}}/devices/{{deviceSerial}}/telemetry/{{dataType}}", topic);
                 return null;
             }
 
             return new TopicMetadata(
                 Long.parseLong(parts[2]), // siteId
-                Long.parseLong(parts[4]), // deviceId
+                parts[4], // deviceSerial (String, not Long!)
                 parts.length > 6 ? parts[6] : "default" // dataType
             );
         } catch (NumberFormatException | ArrayIndexOutOfBoundsException e) {
@@ -145,38 +181,106 @@ public class DeviceTelemetryProcessor {
      */
     private BaseTelemetryDTO parseTelemetryByDeviceType(DeviceType deviceType, String payload) {
         try {
+            logger.info("🔍 Parsing telemetry for device type: {}", deviceType.getName());
+            
             switch (deviceType.getName().toUpperCase()) {
                 case "BMS":
                 case "BATTERY_STORAGE":
-                    return objectMapper.readValue(payload, BMSTelemetryDTO.class);
+                    try {
+                        return objectMapper.readValue(payload, BMSTelemetryDTO.class);
+                    } catch (JsonProcessingException e) {
+                        logger.warn("⚠️ Failed to parse as BMSTelemetryDTO, trying generic telemetry: {}", e.getMessage());
+                        return parseGenericTelemetry(payload);
+                    }
                     
                 case "SOLAR_ARRAY":
                 case "SOLAR_INVERTER":
-                    return objectMapper.readValue(payload, SolarArrayTelemetryDTO.class);
+                    try {
+                        return objectMapper.readValue(payload, SolarArrayTelemetryDTO.class);
+                    } catch (JsonProcessingException e) {
+                        logger.warn("⚠️ Failed to parse as SolarArrayTelemetryDTO, trying generic telemetry: {}", e.getMessage());
+                        return parseGenericTelemetry(payload);
+                    }
                     
                 case "EV_CHARGER":
-                    return objectMapper.readValue(payload, EVChargerTelemetryDTO.class);
+                    try {
+                        return objectMapper.readValue(payload, EVChargerTelemetryDTO.class);
+                    } catch (JsonProcessingException e) {
+                        logger.warn("⚠️ Failed to parse as EVChargerTelemetryDTO, trying generic telemetry: {}", e.getMessage());
+                        return parseGenericTelemetry(payload);
+                    }
                     
                 default:
-                    logger.warn("Unknown device type for telemetry parsing: {}", deviceType.getName());
-                    return null;
+                    logger.info("ℹ️ Unknown device type, parsing as generic telemetry: {}", deviceType.getName());
+                    return parseGenericTelemetry(payload);
             }
         } catch (JsonProcessingException e) {
-            logger.error("Error parsing telemetry payload for device type: " + deviceType.getName(), e);
+            logger.error("❌ Error parsing telemetry payload for device type: " + deviceType.getName(), e);
             return null;
         }
+    }
+
+    /**
+     * Parse generic telemetry data (fallback for test data or unknown formats)
+     */
+    private BaseTelemetryDTO parseGenericTelemetry(String payload) throws JsonProcessingException {
+        logger.info("🔧 Parsing as generic telemetry...");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> data = objectMapper.readValue(payload, Map.class);
+        
+        // Create a basic telemetry DTO
+        BaseTelemetryDTO dto = new BaseTelemetryDTO() {
+            private Long deviceId;
+            private LocalDateTime timestamp;
+            private Map<String, Object> qualityIndicators = new HashMap<>();
+            
+            @Override
+            public Long getDeviceId() { return deviceId; }
+            @Override
+            public void setDeviceId(Long deviceId) { this.deviceId = deviceId; }
+            @Override
+            public LocalDateTime getTimestamp() { return timestamp; }
+            @Override
+            public void setTimestamp(LocalDateTime timestamp) { this.timestamp = timestamp; }
+            @Override
+            public Map<String, Object> getQualityIndicators() { return qualityIndicators; }
+            @Override
+            public void setQualityIndicators(Map<String, Object> qualityIndicators) { this.qualityIndicators = qualityIndicators; }
+        };
+        
+        // Try to extract timestamp if present
+        if (data.containsKey("timestamp")) {
+            try {
+                String timestampStr = data.get("timestamp").toString();
+                dto.setTimestamp(LocalDateTime.parse(timestampStr));
+            } catch (Exception e) {
+                logger.debug("Could not parse timestamp from payload, using current time");
+                dto.setTimestamp(LocalDateTime.now());
+            }
+        } else {
+            dto.setTimestamp(LocalDateTime.now());
+        }
+        
+        logger.info("✅ Successfully created generic telemetry DTO");
+        return dto;
     }
 
     /**
      * Create DeviceTelemetry entity from DTO
      */
     private DeviceTelemetry createTelemetryEntity(Device device, BaseTelemetryDTO telemetryDTO) {
+        logger.info("📊 Creating telemetry entity from DTO: {}", telemetryDTO.getClass().getSimpleName());
+        logger.info("📊 Telemetry DTO data: {}", telemetryDTO);
+        
         Map<String, Object> data = convertTelemetryToMap(telemetryDTO);
+        logger.info("📊 Converted telemetry data map: {}", data);
+        logger.info("📊 Data map voltage: {}, current: {}", data.get("voltage"), data.get("current"));
         
         DeviceTelemetry telemetry = new DeviceTelemetry(device, telemetryDTO.getTimestamp(), data);
         telemetry.setQualityIndicators(telemetryDTO.getQualityIndicators());
         telemetry.setProcessedAt(LocalDateTime.now());
         
+        logger.info("📊 Created telemetry entity with data: {}", telemetry.getData());
         return telemetry;
     }
 
@@ -185,12 +289,18 @@ public class DeviceTelemetryProcessor {
      */
     private Map<String, Object> convertTelemetryToMap(BaseTelemetryDTO telemetryDTO) {
         try {
+            logger.info("🔄 Converting telemetry DTO to map: {}", telemetryDTO);
             String json = objectMapper.writeValueAsString(telemetryDTO);
+            logger.info("🔄 Serialized JSON string: {}", json);
+            
             @SuppressWarnings("unchecked")
             Map<String, Object> result = objectMapper.readValue(json, Map.class);
+            logger.info("🔄 Deserialized map result: {}", result);
+            logger.info("🔄 Map keys: {}", result.keySet());
+            
             return result;
         } catch (JsonProcessingException e) {
-            logger.error("Error converting telemetry DTO to map", e);
+            logger.error("❌ Error converting telemetry DTO to map", e);
             return new HashMap<>();
         }
     }
@@ -199,15 +309,33 @@ public class DeviceTelemetryProcessor {
      * Update device status cache with latest telemetry
      */
     private void updateDeviceStatusCache(Device device, BaseTelemetryDTO telemetryDTO) {
-        DeviceStatusCache statusCache = statusCacheRepository.findByDeviceId(device.getId())
-            .orElse(new DeviceStatusCache(device, DeviceStatusCache.DeviceStatus.ONLINE));
+        // Run status cache update in its own separate transaction to prevent rollback
+        transactionTemplate.executeWithoutResult(status -> {
+            try {
+                DeviceStatusCache statusCache = statusCacheRepository.findByDeviceId(device.getId())
+                    .orElseGet(() -> {
+                        logger.info("Creating new DeviceStatusCache for device: {}", device.getId());
+                        logger.info("Device ID when creating cache: {}", device.getId());
+                        logger.info("Device ID is null: {}", (device.getId() == null));
+                        DeviceStatusCache newCache = new DeviceStatusCache(device, DeviceStatusCache.DeviceStatus.ONLINE);
+                        logger.info("Created cache with deviceId: {}", newCache.getDeviceId());
+                        return newCache;
+                    });
 
-        statusCache.setLastSeen(telemetryDTO.getTimestamp());
-        statusCache.setStatus(DeviceStatusCache.DeviceStatus.ONLINE);
-        statusCache.setCurrentData(convertTelemetryToMap(telemetryDTO));
-        statusCache.setUpdatedAt(LocalDateTime.now());
+                statusCache.setLastSeen(telemetryDTO.getTimestamp());
+                statusCache.setStatus(DeviceStatusCache.DeviceStatus.ONLINE);
+                statusCache.setCurrentData(convertTelemetryToMap(telemetryDTO));
+                statusCache.setUpdatedAt(LocalDateTime.now());
 
-        statusCacheRepository.save(statusCache);
+                logger.info("Saving DeviceStatusCache for device: {} with ID: {}", device.getId(), statusCache.getDeviceId());
+                statusCacheRepository.save(statusCache);
+                logger.info("Successfully saved DeviceStatusCache");
+            } catch (Exception e) {
+                logger.error("Failed to update device status cache for device: {}", device.getId(), e);
+                // Mark transaction for rollback, but this won't affect the main telemetry transaction
+                status.setRollbackOnly();
+            }
+        });
     }
 
     /**
@@ -231,6 +359,19 @@ public class DeviceTelemetryProcessor {
     /**
      * Check for alert conditions based on device type and thresholds
      */
+    private void checkAlertConditionsInSeparateTransaction(Device device, BaseTelemetryDTO telemetryDTO) {
+        // Run alert checking in its own separate transaction to prevent rollback
+        transactionTemplate.executeWithoutResult(status -> {
+            try {
+                checkAlertConditions(device, telemetryDTO);
+            } catch (Exception e) {
+                logger.error("Failed to check alert conditions for device: {}", device.getId(), e);
+                // Mark this transaction for rollback, but don't affect the main telemetry transaction
+                status.setRollbackOnly();
+            }
+        });
+    }
+
     private void checkAlertConditions(Device device, BaseTelemetryDTO telemetryDTO) {
         try {
             DeviceType deviceType = device.getDeviceType();
@@ -244,16 +385,28 @@ public class DeviceTelemetryProcessor {
             switch (deviceType.getName().toUpperCase()) {
                 case "BMS":
                 case "BATTERY_STORAGE":
-                    checkBMSAlerts(device, (BMSTelemetryDTO) telemetryDTO, alertThresholds);
+                    if (telemetryDTO instanceof BMSTelemetryDTO) {
+                        checkBMSAlerts(device, (BMSTelemetryDTO) telemetryDTO, alertThresholds);
+                    } else {
+                        logger.warn("Expected BMSTelemetryDTO but got: {}", telemetryDTO.getClass().getSimpleName());
+                    }
                     break;
                     
                 case "SOLAR_ARRAY":
                 case "SOLAR_INVERTER":
-                    checkSolarArrayAlerts(device, (SolarArrayTelemetryDTO) telemetryDTO, alertThresholds);
+                    if (telemetryDTO instanceof SolarArrayTelemetryDTO) {
+                        checkSolarArrayAlerts(device, (SolarArrayTelemetryDTO) telemetryDTO, alertThresholds);
+                    } else {
+                        logger.warn("Expected SolarArrayTelemetryDTO but got: {}", telemetryDTO.getClass().getSimpleName());
+                    }
                     break;
                     
                 case "EV_CHARGER":
-                    checkEVChargerAlerts(device, (EVChargerTelemetryDTO) telemetryDTO, alertThresholds);
+                    if (telemetryDTO instanceof EVChargerTelemetryDTO) {
+                        checkEVChargerAlerts(device, (EVChargerTelemetryDTO) telemetryDTO, alertThresholds);
+                    } else {
+                        logger.warn("Expected EVChargerTelemetryDTO but got: {}", telemetryDTO.getClass().getSimpleName());
+                    }
                     break;
             }
         } catch (Exception e) {
@@ -350,12 +503,12 @@ public class DeviceTelemetryProcessor {
      */
     private static class TopicMetadata {
         private final Long siteId;
-        private final Long deviceId;
+        private final String deviceSerial;
         private final String dataType;
 
-        public TopicMetadata(Long siteId, Long deviceId, String dataType) {
+        public TopicMetadata(Long siteId, String deviceSerial, String dataType) {
             this.siteId = siteId;
-            this.deviceId = deviceId;
+            this.deviceSerial = deviceSerial;
             this.dataType = dataType;
         }
 
@@ -363,8 +516,8 @@ public class DeviceTelemetryProcessor {
             return siteId;
         }
 
-        public Long getDeviceId() {
-            return deviceId;
+        public String getDeviceSerial() {
+            return deviceSerial;
         }
 
         public String getDataType() {

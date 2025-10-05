@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- Console appender for test output -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Root logger -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+
+    <!-- Application logging -->
+    <logger name="com.ecogrid.ems" level="DEBUG"/>
+
+    <!-- Suppress Kafka logging -->
+    <logger name="kafka" level="ERROR"/>
+    <logger name="org.apache.kafka" level="ERROR"/>
+    <logger name="state.change.logger" level="OFF"/>
+    <logger name="kafka.server" level="OFF"/>
+    <logger name="kafka.coordinator" level="OFF"/>
+    <logger name="kafka.log" level="OFF"/>
+    <logger name="kafka.network" level="OFF"/>
+    <logger name="kafka.raft" level="OFF"/>
+    
+    <!-- Specific Kafka loggers that are particularly verbose -->
+    <logger name="kafka.server.BrokerLifecycleManager" level="OFF"/>
+    <logger name="kafka.server.KafkaRequestHandlerPool" level="OFF"/>
+    <logger name="kafka.server.ReplicaManager" level="OFF"/>
+    <logger name="kafka.server.ReplicaFetcherManager" level="OFF"/>
+    <logger name="kafka.server.AddPartitionsToTxnManager" level="OFF"/>
+    <logger name="kafka.coordinator.group.GroupCoordinator" level="OFF"/>
+    <logger name="kafka.coordinator.group.GroupMetadataManager" level="OFF"/>
+    <logger name="kafka.coordinator.transaction.TransactionCoordinator" level="OFF"/>
+    <logger name="kafka.coordinator.transaction.TransactionStateManager" level="OFF"/>
+    <logger name="kafka.log.LogManager" level="OFF"/>
+    <logger name="kafka.log.LogCleaner" level="OFF"/>
+    <logger name="kafka.network.SocketServer" level="OFF"/>
+    <logger name="OperationPurgatory" level="OFF"/>
+    <logger name="ThrottledChannelReaper" level="OFF"/>
+    <logger name="ExpirationService" level="OFF"/>
+    
+    <!-- Suppress TestContainers noise -->
+    <logger name="org.testcontainers" level="WARN"/>
+    <logger name="com.github.dockerjava" level="WARN"/>
+    <logger name="org.springframework.kafka" level="WARN"/>
+    
+    <!-- Suppress Hibernate SQL in tests -->
+    <logger name="org.hibernate.SQL" level="WARN"/>
+    <logger name="org.hibernate.type.descriptor.sql.BasicBinder" level="WARN"/>
+    <logger name="org.hibernate.engine.jdbc.spi.SqlExceptionHelper" level="ERROR"/>
+    <logger name="org.hibernate.tool.schema" level="ERROR"/>
+</configuration>

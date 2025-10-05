@@ -25,19 +25,19 @@ public interface DeviceStatusCacheRepository extends JpaRepository<DeviceStatusC
     /**
      * Find all device status for a site
      */
-    @Query("SELECT dsc FROM DeviceStatusCache dsc WHERE dsc.device.site.id = :siteId")
+    @Query("SELECT dsc FROM DeviceStatusCache dsc JOIN Device d ON dsc.deviceId = d.id WHERE d.site.id = :siteId")
     List<DeviceStatusCache> findBySiteId(@Param("siteId") Long siteId);
 
     /**
      * Find devices by status for a site
      */
-    @Query("SELECT dsc FROM DeviceStatusCache dsc WHERE dsc.device.site.id = :siteId AND dsc.status = :status")
+    @Query("SELECT dsc FROM DeviceStatusCache dsc JOIN Device d ON dsc.deviceId = d.id WHERE d.site.id = :siteId AND dsc.status = :status")
     List<DeviceStatusCache> findBySiteIdAndStatus(@Param("siteId") Long siteId, @Param("status") DeviceStatusCache.DeviceStatus status);
 
     /**
      * Find devices with active alerts for a site
      */
-    @Query("SELECT dsc FROM DeviceStatusCache dsc WHERE dsc.device.site.id = :siteId AND dsc.alertCount > 0")
+    @Query("SELECT dsc FROM DeviceStatusCache dsc JOIN Device d ON dsc.deviceId = d.id WHERE d.site.id = :siteId AND dsc.alertCount > 0")
     List<DeviceStatusCache> findBySiteIdWithActiveAlerts(@Param("siteId") Long siteId);
 
     /**
@@ -60,7 +60,7 @@ public interface DeviceStatusCacheRepository extends JpaRepository<DeviceStatusC
     /**
      * Count devices by status for a site
      */
-    @Query("SELECT COUNT(dsc) FROM DeviceStatusCache dsc WHERE dsc.device.site.id = :siteId AND dsc.status = :status")
+    @Query("SELECT COUNT(dsc) FROM DeviceStatusCache dsc JOIN Device d ON dsc.deviceId = d.id WHERE d.site.id = :siteId AND dsc.status = :status")
     Long countBySiteIdAndStatus(@Param("siteId") Long siteId, @Param("status") DeviceStatusCache.DeviceStatus status);
 
     /**
