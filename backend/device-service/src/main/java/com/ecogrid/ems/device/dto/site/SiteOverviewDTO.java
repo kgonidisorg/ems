@@ -21,6 +21,9 @@ public class SiteOverviewDTO {
     private SiteStatus status;
     private String timezone;
     private String address;
+    private String contactPerson;
+    private String contactEmail;
+    private String contactPhone;
     
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSSSS")
     private LocalDateTime lastUpdated;
@@ -33,7 +36,8 @@ public class SiteOverviewDTO {
 
     public SiteOverviewDTO(Long id, String name, String description, BigDecimal locationLat, 
                           BigDecimal locationLng, BigDecimal capacityMw, SiteStatus status, 
-                          String timezone, String address, LocalDateTime lastUpdated, 
+                          String timezone, String address, String contactPerson, String contactEmail, 
+                          String contactPhone, LocalDateTime lastUpdated, 
                           List<SiteDeviceDTO> devices, SiteSummaryDTO summary) {
         this.id = id;
         this.name = name;
@@ -44,6 +48,9 @@ public class SiteOverviewDTO {
         this.status = status;
         this.timezone = timezone;
         this.address = address;
+        this.contactPerson = contactPerson;
+        this.contactEmail = contactEmail;
+        this.contactPhone = contactPhone;
         this.lastUpdated = lastUpdated;
         this.devices = devices;
         this.summary = summary;
@@ -120,6 +127,30 @@ public class SiteOverviewDTO {
 
     public void setAddress(String address) {
         this.address = address;
+    }
+
+    public String getContactPerson() {
+        return contactPerson;
+    }
+
+    public void setContactPerson(String contactPerson) {
+        this.contactPerson = contactPerson;
+    }
+
+    public String getContactEmail() {
+        return contactEmail;
+    }
+
+    public void setContactEmail(String contactEmail) {
+        this.contactEmail = contactEmail;
+    }
+
+    public String getContactPhone() {
+        return contactPhone;
+    }
+
+    public void setContactPhone(String contactPhone) {
+        this.contactPhone = contactPhone;
     }
 
     public LocalDateTime getLastUpdated() {

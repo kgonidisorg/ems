@@ -83,6 +83,9 @@ public class SiteOverviewService {
             site.getStatus(),
             site.getTimezone(),
             site.getAddress(),
+            site.getContactPerson(),
+            site.getContactEmail(),
+            site.getContactPhone(),
             LocalDateTime.now(),
             deviceDTOs,
             summary
