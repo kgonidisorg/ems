@@ -296,10 +296,10 @@ class WebSocketClient {
 - **Frontend Authentication Infrastructure**: 100% Complete ✅ (Components built and tested)
 - **Frontend-Backend Integration**: 100% Complete ✅ (Auth system fully operational)
 - **Real-time Data Integration**: 100% Complete ✅ (Phase 4-2 with WebSocket and API integration)
-- **🚧 Phase 5: Real-time EMS Integration**: 60% Complete (IN PROGRESS - October 2025)
+- **🚧 Phase 5: Real-time EMS Integration**: 75% Complete (IN PROGRESS - October 2025)
 
 ### 🎯 Current Development Focus (October 2025)
-**Phase 5: Real-time EMS Integration** is currently 60% complete with significant backend infrastructure progress. The database schema enhancements, device telemetry processing, real-time aggregation service, and Analytics Service APIs have been successfully implemented. The next focus is on WebSocket real-time updates and frontend integration.
+**Phase 5: Real-time EMS Integration** is currently 75% complete with significant progress on analytics integration testing. The database schema enhancements, device telemetry processing, real-time aggregation service, Analytics Service APIs, and aggregation calculation fixes have been successfully implemented. The next focus is on WebSocket real-time updates and frontend integration.
 
 ### 🔧 Recent Backend Infrastructure Updates (October 2025)
 
@@ -352,10 +352,18 @@ class WebSocketClient {
 - **TestContainers Configuration**: PostgreSQL, Kafka, and MQTT broker integration
 - **Debug Infrastructure**: Enhanced logging with emoji markers for data flow tracing
 
+**✅ 5.6 Analytics Integration Testing (COMPLETED - October 2025)**
+- **RealTimeAggregationIntegrationTest**: Comprehensive MQTT-based integration testing for real-time aggregation pipeline
+  - Full end-to-end testing covering MQTT → DeviceTelemetryProcessor → Kafka → RealTimeAggregationService flow
+  - Fixed timestamp parsing issues with microsecond precision in BaseTelemetryDTO (@JsonFormat pattern)
+  - Resolved device type name handling for "SOLAR ARRAY" and "EV CHARGER" with space variations
+  - Corrected telemetry field name mappings between test data and DTO schemas for all device types
+  - Verified realistic aggregation calculations for BMS (totalCapacity: 100.0, avgSOC: 85.0), Solar Array (totalOutput: 131.0, dailyYield: 900.0), and EV Charger (totalChargers: 2, activeSessions: 2)
+  - Implemented proper Kafka topic verification with TestContainers for site-level aggregation metrics
+
 **🚧 Remaining Phase 5 Tasks**
-- **5.6 Analytics Integration Testing**: Add RealTimeAggregationService test coverage
 - **5.7 WebSocket Real-time Testing**: Replace mocked WebSocket with actual integration tests  
-- **5.8 Multi-Device-Type Testing**: Extend pipeline testing to Solar Array and EV Charger devices
+- **5.8 Multi-Device-Type Testing**: Additional edge case testing for mixed device environments
 - **5.9 Frontend EMS Page Integration**: Replace mock data with real API calls and WebSocket subscriptions
 - **5.10 Alert Processing System**: Implement alert threshold checking and site-level aggregation
 
@@ -366,8 +374,10 @@ class WebSocketClient {
 - `/backend/shared/src/main/java/com/ecogrid/ems/shared/entity/DeviceTelemetry.java` - Time-series telemetry data entity
 - `/backend/shared/src/main/java/com/ecogrid/ems/shared/entity/DeviceStatusCache.java` - Real-time device status cache
 - `/backend/shared/src/main/java/com/ecogrid/ems/shared/dto/telemetry/*` - Device-specific telemetry DTOs (BMS, Solar, EV Charger)
-- `/backend/device-service/src/main/java/com/ecogrid/ems/device/service/DeviceTelemetryProcessor.java` - MQTT telemetry processor
+- `/backend/shared/src/main/java/com/ecogrid/ems/shared/dto/telemetry/BaseTelemetryDTO.java` - Fixed @JsonFormat timestamp pattern for microsecond precision
+- `/backend/device-service/src/main/java/com/ecogrid/ems/device/service/DeviceTelemetryProcessor.java` - Enhanced device type parsing with space/underscore variations
 - `/backend/device-service/src/main/java/com/ecogrid/ems/device/service/RealTimeAggregationService.java` - Kafka-based aggregation service
+- `/backend/device-service/src/test/java/com/ecogrid/ems/device/integration/RealTimeAggregationIntegrationTest.java` - Comprehensive integration testing with corrected field mappings
 - `/backend/analytics-service/src/main/java/com/ecogrid/ems/analytics/controller/EMSController.java` - EMS-specific REST endpoints
 - `/backend/analytics-service/src/main/java/com/ecogrid/ems/analytics/service/EMSAnalyticsService.java` - EMS analytics service layer
 - `/backend/analytics-service/src/main/java/com/ecogrid/ems/analytics/dto/*` - Comprehensive EMS response DTOs
@@ -376,10 +386,11 @@ class WebSocketClient {
 **Technical Achievements:**
 - **Real-time Data Pipeline**: Complete MQTT → Device Service → Kafka → Analytics Service flow
 - **Device Type Flexibility**: JSONB-based telemetry storage supporting any device type schema
-- **Site-level Aggregation**: Real-time calculation of site metrics from individual device data
+- **Site-level Aggregation**: Real-time calculation of site metrics from individual device data with validated calculations
 - **Comprehensive APIs**: 10 new REST endpoints supporting full EMS dashboard functionality
 - **Mock Data Integration**: Development-ready service with realistic data for immediate frontend work
 - **Performance Optimization**: Proper database indexing for time-series queries and real-time lookups
+- **Aggregation Calculation Fixes**: Resolved timestamp parsing, device type matching, and field name alignment issues for accurate real-time metrics
 
 #### ✅ Backend Issues Resolution (COMPLETED - October 2025)
 - **Redis Health Checks**: ✅ RESOLVED - Redis connectivity working, health checks functional
