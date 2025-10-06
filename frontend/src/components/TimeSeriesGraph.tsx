@@ -8,7 +8,7 @@ import {
     Tooltip,
     Legend,
 } from "recharts";
-import { analyticsAPI } from "@/lib/analytics";
+import { AnalyticsService } from "@/lib/api";
 import { useAsyncData } from "@/hooks/useAsyncData";
 import { LoadingSpinner, ErrorDisplay } from "@/components/ui/LoadingComponents";
 
@@ -23,7 +23,7 @@ const TimeSeriesGraph: React.FC<TimeSeriesGraphProps> = ({ siteId, hoursBack = 2
 
     // Fetch energy consumption data specifically for time series (avoid duplicate dashboard calls)
     const { data: energyData, loading, error, refetch } = useAsyncData(
-        () => analyticsAPI.getEnergyConsumption({ 
+        () => AnalyticsService.getEnergyConsumption({ 
             aggregation: 'HOURLY',
             siteId,
             startDate: new Date(Date.now() - (hoursBack || 24) * 60 * 60 * 1000).toISOString(),

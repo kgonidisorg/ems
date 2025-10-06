@@ -1,8 +1,11 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import EnergyFlowDiagram from "@/components/EnergyFlowDiagram";
 import Topbar from "@/components/Topbar";
-import { useEMSWebSocket } from "@/hooks/useEMSWebSocket";
+import { SiteSelector } from "@/components/SiteSelector";
+import { useSiteOptions } from "@/hooks/useSiteOptions";
+import { useSiteOverview } from "@/hooks/useSiteOverview";
 import {
     FaBatteryFull,
     FaBolt,
@@ -24,125 +27,118 @@ import {
 } from "react-icons/fa";
 
 const EMSPage: React.FC = () => {
-    const [selectedSite, setSelectedSite] = useState<string>("New York");
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const [selectedSiteId, setSelectedSiteId] = useState<number | null>(null);
     
-    // WebSocket connection for real-time data - use siteId based on selectedSite
-    const siteId = selectedSite.toLowerCase().replace(' ', '-');
-    const { 
-        data: emsData, 
-        isConnected, 
-        hasError 
-    } = useEMSWebSocket(siteId);
+    // Fetch available sites for dropdown
+    const { sites } = useSiteOptions();
+    
+    // Initialize selectedSiteId from URL parameter or auto-select first site
+    useEffect(() => {
+        const urlSiteId = searchParams.get('siteId');
+        
+        if (urlSiteId) {
+            // Use site ID from URL if valid
+            const siteIdNumber = parseInt(urlSiteId, 10);
+            if (!isNaN(siteIdNumber)) {
+                setSelectedSiteId(siteIdNumber);
+                return;
+            }
+        }
+        
+        // Auto-select the first site when sites are loaded and no site is selected
+        if (sites.length > 0 && selectedSiteId === null) {
+            const firstSiteId = sites[0].id;
+            setSelectedSiteId(firstSiteId);
+            // Update URL to reflect the auto-selected site
+            const newSearchParams = new URLSearchParams(searchParams.toString());
+            newSearchParams.set('siteId', firstSiteId.toString());
+            router.replace(`/ems?${newSearchParams.toString()}`);
+        }
+    }, [sites, selectedSiteId, searchParams, router]);
+    
+    // Handle site selection change and update URL
+    const handleSiteChange = (siteId: number | null) => {
+        setSelectedSiteId(siteId);
+        
+        if (siteId !== null) {
+            const newSearchParams = new URLSearchParams(searchParams.toString());
+            newSearchParams.set('siteId', siteId.toString());
+            router.replace(`/ems?${newSearchParams.toString()}`);
+        } else {
+            // Remove siteId parameter if null
+            const newSearchParams = new URLSearchParams(searchParams.toString());
+            newSearchParams.delete('siteId');
+            const queryString = newSearchParams.toString();
+            router.replace(`/ems${queryString ? `?${queryString}` : ''}`);
+        }
+    };
+    
+    // Fetch site overview data based on selected site
+    const {
+        data: siteOverview
+    } = useSiteOverview({ siteId: selectedSiteId });
 
-    // Extract battery system data from WebSocket with fallbacks
-    const batterySystem = emsData?.batterySystem || {
-        soc: 0,
-        chargeRate: 0,
-        temperature: 0,
-        remainingCapacity: 0,
-        healthStatus: "Unknown",
-        efficiency: 0,
+    // Extract battery system data from site overview
+    const batteryDevices = siteOverview?.devices.filter(d => d.deviceType === 'BMS') || [];
+    const batteryTelemetry = batteryDevices[0]?.latestTelemetry?.data;
+    const batterySystem = {
+        soc: Number(batteryTelemetry?.soc) || 0,
+        chargeRate: Number(batteryTelemetry?.current) || 0,
+        temperature: Number(batteryTelemetry?.temperature) || 0,
+        remainingCapacity: Number(batteryTelemetry?.energy_today) || 0,
+        healthStatus: String(batteryTelemetry?.status) || "Unknown",
+        efficiency: Number(batteryTelemetry?.health) || 0,
     };
 
-    // Extract solar array data from WebSocket with fallbacks
-    const solarArray = emsData?.solarArray || {
-        currentOutput: 0,
-        energyYield: 0,
-        panelTemperature: 0,
-        irradiance: 0,
-        inverterEfficiency: 0,
+    // Extract solar array data from site overview
+    const solarDevices = siteOverview?.devices.filter(d => d.deviceType === 'SOLAR_ARRAY' || d.deviceType === 'SOLAR_PANEL' || d.deviceType === 'INVERTER') || [];
+    const solarTelemetry = solarDevices[0]?.latestTelemetry?.data;
+    const solarArray = {
+        currentOutput: Number(solarTelemetry?.power) || 0,
+        inverterEfficiency: Number(solarTelemetry?.efficiency) || 0,
+        energyYield: Number(solarTelemetry?.energy_today) || 0,
+        status: String(solarTelemetry?.status) || "Unknown",
+        irradiance: Number(solarTelemetry?.irradiance) || 0,
+        panelTemperature: Number(solarTelemetry?.temperature) || 0,
+    };    // Extract EV charger data from site overview
+    const evDevices = siteOverview?.devices.filter(d => d.deviceType === 'EV_CHARGER') || [];
+    const evTelemetry = evDevices[0]?.latestTelemetry?.data;
+    const evCharger = {
+        activeSessions: Number(evTelemetry?.active_sessions) || 0,
+        powerDelivered: Number(evTelemetry?.power) || 0,
+        avgSessionDuration: Number(evTelemetry?.session_duration) || 0,
+        revenue: Number(evTelemetry?.revenue) || 0,
+        faults: Number(evTelemetry?.faults) || 0,
+        uptime: Number(evTelemetry?.uptime) || 0,
     };
 
-    // Extract EV charger data from WebSocket with fallbacks
-    const evCharger = emsData?.evCharger || {
-        activeSessions: 0,
-        powerDelivered: 0,
-        avgSessionDuration: 0,
-        revenue: 0,
-        faults: 0,
-        uptime: 0,
-    };
-
-    // Extract forecast data from WebSocket with fallbacks
-    const forecast = emsData.forecast?.map((item) => ({
-        time: item.time,
-        irradiance: item.irradiance || 0
-    })) || [
-        { time: "08:00", irradiance: 0 },
-        { time: "10:00", irradiance: 0 },
-        { time: "12:00", irradiance: 0 },
-        { time: "14:00", irradiance: 0 },
-        { time: "16:00", irradiance: 0 },
-        { time: "18:00", irradiance: 0 },
+    // Mock forecast data (will be integrated into site overview later)
+    const forecast = [
+        { time: '09:00', demand: 45, generation: 60, storage: 75, gridImport: 0, gridExport: 15, batteryLevel: 85, temperature: 22, cloudCover: 20, windSpeed: 5, irradiance: 750 },
+        { time: '10:00', demand: 48, generation: 65, storage: 70, gridImport: 0, gridExport: 17, batteryLevel: 80, temperature: 24, cloudCover: 15, windSpeed: 6, irradiance: 820 },
+        { time: '11:00', demand: 52, generation: 70, storage: 65, gridImport: 0, gridExport: 18, batteryLevel: 75, temperature: 26, cloudCover: 10, windSpeed: 7, irradiance: 900 },
+        { time: '12:00', demand: 55, generation: 75, storage: 60, gridImport: 0, gridExport: 20, batteryLevel: 70, temperature: 28, cloudCover: 5, windSpeed: 8, irradiance: 950 },
     ];
 
-    // Extract schedule data from WebSocket with fallbacks
-    const [schedule, setSchedule] = useState(
-        emsData.schedule?.map(item => ({
-            task: item.task || "Unknown",
-            time: item.time || "00:00"
-        })) || [
-            { task: "Battery Charging", time: "08:00" },
-            { task: "Grid Export", time: "12:00" },
-            { task: "EV Charging", time: "16:00" },
-        ]
-    );
+    // Mock schedule data (will be integrated into site overview later)
+    const [schedule, setSchedule] = useState([
+        { task: "Battery Charging", time: "08:00" },
+        { task: "Grid Export", time: "12:00" },
+        { task: "EV Charging", time: "16:00" },
+        { task: "System Maintenance", time: "20:00" },
+    ]);
 
-    const sites: Record<
-        string,
-        {
-            location: string;
-            geo: string;
-            contact: string;
-            email: string;
-            website: string;
-        }
-    > = {
-        "New York": {
-            location: "New York, USA",
-            geo: "40.7128° N, 74.0060° W",
-            contact: "+1 (555) 123-4567",
-            email: "contact@ecogrid.com",
-            website: "www.ecogrid.com",
-        },
-        "Los Angeles": {
-            location: "Los Angeles, USA",
-            geo: "34.0522° N, 118.2437° W",
-            contact: "+1 (555) 987-6543",
-            email: "la@ecogrid.com",
-            website: "www.ecogrid-la.com",
-        },
-        Chicago: {
-            location: "Chicago, USA",
-            geo: "41.8781° N, 87.6298° W",
-            contact: "+1 (555) 456-7890",
-            email: "chicago@ecogrid.com",
-            website: "www.ecogrid-chicago.com",
-        },
-        Houston: {
-            location: "Houston, USA",
-            geo: "29.7604° N, 95.3698° W",
-            contact: "+1 (555) 321-6549",
-            email: "houston@ecogrid.com",
-            website: "www.ecogrid-houston.com",
-        },
-        Miami: {
-            location: "Miami, USA",
-            geo: "25.7617° N, 80.1918° W",
-            contact: "+1 (555) 654-3210",
-            email: "miami@ecogrid.com",
-            website: "www.ecogrid-miami.com",
-        },
+    // Use site overview data for site information
+    const siteInfo = {
+        location: siteOverview?.address || 'Unknown Location',
+        geo: siteOverview ? `${siteOverview.locationLat}° N, ${siteOverview.locationLng}° W` : 'Unknown Coordinates',
+        contact: siteOverview?.contactPerson || 'No contact information',
+        number: siteOverview?.contactPhone || 'No contact number',
+        email: siteOverview?.contactEmail || 'No email provided',
+        website: 'www.ecogrid.com', // This field is not yet in the site overview, keeping static for now
     };
-
-    // Use WebSocket site info if available, otherwise fallback to static data
-    const siteInfo = emsData.siteInfo ? {
-        location: emsData.siteInfo.location || sites[selectedSite].location,
-        geo: emsData.siteInfo.geo || sites[selectedSite].geo,
-        contact: emsData.siteInfo.contact || sites[selectedSite].contact,
-        email: emsData.siteInfo.email || sites[selectedSite].email,
-        website: emsData.siteInfo.website || sites[selectedSite].website,
-    } : sites[selectedSite];
 
     // Real-time data is now handled by WebSocket connection
     // No need for mock data intervals
@@ -178,49 +174,23 @@ const EMSPage: React.FC = () => {
                         </h1>
                     </div>
                     <div className="flex items-center gap-4">
-                        <div className={`h-3 w-3 rounded-full ${
-                            isConnected 
-                                ? 'bg-green-500 animate-pulse' 
-                                : hasError 
-                                    ? 'bg-red-500' 
-                                    : 'bg-yellow-500 animate-pulse'
-                        }`}></div>
-                        <span className={`${
-                            isConnected 
-                                ? 'text-green-400' 
-                                : hasError 
-                                    ? 'text-red-400' 
-                                    : 'text-yellow-400'
-                        }`}>
-                            {isConnected 
-                                ? 'WebSocket Connected' 
-                                : hasError 
-                                    ? 'Connection Error' 
-                                    : 'Connecting...'}
+                        <div className="h-3 w-3 rounded-full bg-green-500 animate-pulse"></div>
+                        <span className="text-green-400">
+                            API Connected
                         </span>
                     </div>
                 </div>
 
                 {/* Site Selector */}
                 <div className="mb-8">
-                    <label
-                        htmlFor="site-selector"
-                        className="text-white text-lg font-semibold mr-4"
-                    >
+                    <label className="text-white text-lg font-semibold mr-4 block mb-2">
                         Select EMS Site:
                     </label>
-                    <select
-                        id="site-selector"
-                        className="p-2 px-5 rounded bg-slate-800 text-white border border-green-500"
-                        value={selectedSite}
-                        onChange={(e) => setSelectedSite(e.target.value)}
-                    >
-                        {Object.keys(sites).map((site) => (
-                            <option key={site} value={site}>
-                                {site}
-                            </option>
-                        ))}
-                    </select>
+                    <SiteSelector
+                        sites={sites}
+                        selectedSiteId={selectedSiteId}
+                        onSiteChange={handleSiteChange}
+                    />
                 </div>
 
                 {/* 3D Energy Flow Diagram */}
@@ -267,6 +237,9 @@ const EMSPage: React.FC = () => {
                                         {siteInfo.contact}
                                     </p>
                                 </div>
+                            </div>
+                            <div className="text-sm text-green-400">
+                                Phone: {siteInfo.number}
                             </div>
                             <div className="text-sm text-green-400">
                                 Email: {siteInfo.email}

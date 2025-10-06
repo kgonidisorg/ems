@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import MapView from "@/components/MapView";
 import Topbar from "@/components/Topbar";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
-import { analyticsAPI, deviceAPI } from "@/lib/analytics";
+import { AnalyticsService, SiteService } from "@/lib/api";
 // import { useWebSocket } from "@/lib/websocket"; // TODO: Re-enable when backend WebSocket is implemented
 import { useThrottle } from "@/hooks/useDebounce";
 import type { DashboardResponse, Site } from "@/lib/types";
@@ -16,7 +16,7 @@ export default function Home() {
     const [sites, setSites] = useState<Site[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
+    const [lastUpdate] = useState<Date>(new Date());
 
     // TODO: WebSocket for real-time updates (temporarily disabled until backend WebSocket is implemented)
     // const { connect, disconnect, on, off, isConnected } = useWebSocket();
@@ -26,8 +26,8 @@ export default function Home() {
         try {
             setError(null);
             const [dashboard, sitesData] = await Promise.all([
-                analyticsAPI.getDashboard({ hoursBack: 24 }),
-                deviceAPI.getSites({ size: 50 }),
+                AnalyticsService.getDashboard({ hoursBack: 24 }),
+                SiteService.getSites({ size: 50 }),
             ]);
 
             setDashboardData(dashboard);
@@ -170,13 +170,7 @@ export default function Home() {
                                     Nationwide Map
                                 </h2>
                                 <div className="h-[500px] w-full">
-                                    <MapView
-                                        sites={sites.map((site) => ({
-                                            lat: site.locationLat,
-                                            lng: site.locationLng,
-                                            name: site.name,
-                                        }))}
-                                    />
+                                    <MapView sites={sites} />
                                 </div>
                             </div>
 

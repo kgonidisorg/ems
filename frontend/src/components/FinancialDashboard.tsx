@@ -7,7 +7,7 @@ import {
     Tooltip,
     Legend,
 } from "recharts";
-import { analyticsAPI } from "@/lib/analytics";
+import { AnalyticsService } from "@/lib/api";
 import { useAsyncData } from "@/hooks/useAsyncData";
 import { LoadingSpinner, ErrorDisplay } from "@/components/ui/LoadingComponents";
 
@@ -22,7 +22,7 @@ export interface FinancialDashboardProps {
 const FinancialDashboard: React.FC<FinancialDashboardProps> = ({ siteId, startDate, endDate }) => {
     // Fetch financial metrics data
     const { data: financialData, loading, error, refetch } = useAsyncData(
-        () => analyticsAPI.getFinancialMetrics({ siteId, startDate, endDate }),
+        () => AnalyticsService.getFinancialMetrics({ siteId, startDate, endDate }),
         { dependencies: [siteId, startDate, endDate] }
     );
 

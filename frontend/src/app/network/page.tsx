@@ -15,7 +15,7 @@ import {
 // import dynamic from "next/dynamic";
 import Modal from "react-modal";
 import Topbar from "@/components/Topbar";
-import { deviceAPI } from "@/lib/analytics";
+import { SiteService } from "@/lib/api";
 import { useAsyncData } from "@/hooks/useAsyncData";
 import {
     LoadingSpinner,
@@ -59,7 +59,7 @@ const ClusterDashboard: React.FC = () => {
         loading,
         error,
         refetch,
-    } = useAsyncData(() => deviceAPI.getSites({ size: 100 }));
+    } = useAsyncData(() => SiteService.getSites({ size: 100 }));
 
     // Transform sites into clusters with additional mock data for demonstration
     const clusters: Cluster[] = React.useMemo(() => {

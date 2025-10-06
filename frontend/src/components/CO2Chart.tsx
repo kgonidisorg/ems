@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts";
-import { analyticsAPI } from "@/lib/analytics";
+import { AnalyticsService } from "@/lib/api";
 import { useAsyncData } from "@/hooks/useAsyncData";
 import { LoadingSpinner, ErrorDisplay } from "@/components/ui/LoadingComponents";
 
@@ -17,7 +17,7 @@ const CO2Chart: React.FC<CO2ChartProps> = ({ siteId, startDate, endDate }) => {
 
     // Fetch carbon footprint data
     const { data: carbonData, loading, error, refetch } = useAsyncData(
-        () => analyticsAPI.getCarbonFootprint({ siteId, startDate, endDate }),
+        () => AnalyticsService.getCarbonFootprint({ siteId, startDate, endDate }),
         { dependencies: [siteId, startDate, endDate] }
     );
 
