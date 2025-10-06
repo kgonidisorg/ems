@@ -299,7 +299,7 @@ class WebSocketClient {
 - **🚧 Phase 5: Real-time EMS Integration**: 90% Complete (IN PROGRESS - October 2025)
 
 ### 🎯 Current Development Focus (October 2025)
-**Phase 5: Real-time EMS Integration** is currently 90% complete with successful implementation of end-to-end MQTT telemetry pipeline testing. The database schema enhancements, device telemetry processing, real-time aggregation service, Analytics Service APIs, aggregation calculation fixes, WebSocket infrastructure, and comprehensive MQTT data pipeline testing have been successfully implemented. The next focus is on multi-device testing and comprehensive frontend EMS dashboard integration.
+**Phase 5: Real-time EMS Integration** is currently 95% complete with successful implementation of telemetry caching and site overview API. The database schema enhancements, device telemetry processing, real-time aggregation service, Analytics Service APIs, aggregation calculation fixes, WebSocket infrastructure, MQTT data pipeline testing, and high-performance telemetry caching system have been successfully implemented. The new Site Overview API provides instant access to cached telemetry data for all devices at a site with comprehensive energy metrics aggregation. The next focus is on multi-site validation and comprehensive frontend EMS dashboard integration with the new caching APIs.
 
 ### 🔧 Recent Backend Infrastructure Updates (October 2025)
 
@@ -378,33 +378,45 @@ class WebSocketClient {
 - **Message Destinations**: Site-specific WebSocket topics (`/topic/sites/{siteId}/dashboard`)
 - **Current Limitation**: WebSocket payloads contain basic metadata only (siteId, timestamp, type)
 
-**✅ 5.8 MQTT Telemetry Data Pipeline Testing (COMPLETED - October 2025)**
-- **End-to-End Pipeline Verification**: Comprehensive testing of MQTT → Device Service → PostgreSQL data flow
-  - MQTT telemetry simulator successfully generating realistic device data for 10 sites (40 devices)
-  - Device Service processing 160+ telemetry records with proper JSON storage and indexing
-  - Real-time telemetry data successfully stored in device_telemetry table with timestamp accuracy
-  - Enhanced DeviceTelemetryProcessor with topic pattern parsing for ecogrid/site{N}/{deviceType}/{deviceId}
-  - Generic telemetry handling preserving all sensor data fields in raw JSON format
-- **MQTT Integration Enhancements**: Production-ready MQTT connectivity and reliability
-  - MqttConnectionService with automatic reconnection and health monitoring
-  - Enhanced DeviceMqttCallback with structured topic parsing and device identification
-  - MQTT configuration optimized for Docker container deployment
-  - Health check endpoint (/api/v1/devices/mqtt/status) for monitoring MQTT connectivity
-- **Database Schema Validation**: Confirmed proper data storage and retrieval
-  - 40 devices registered across 10 sites (20 BMS, 10 Solar, 10 EV Charger devices)
-  - Device telemetry properly stored with JSONB data column preserving all sensor readings
-  - PostgreSQL queries optimized for non-interactive mode with proper formatting options
-  - Foreign key relationships maintained between devices, sites, and telemetry records
-- **Infrastructure Reliability**: Docker containerization working flawlessly
-  - All containers healthy with proper dependency management
-  - MQTT broker (Mosquitto) successfully handling high-frequency telemetry data
-  - PostgreSQL database with proper initialization and multi-schema support
-  - Health checks and monitoring endpoints responding correctly
+**✅ 5.8 Telemetry Caching & Site Overview API (COMPLETED - October 2025)**
+- **Telemetry Caching System**: High-performance in-memory caching for latest device telemetry data
+  - DeviceTelemetryCacheService with Spring Cache integration (@Cacheable, @CachePut)
+  - In-memory concurrent cache storing complete raw sensor data (voltage, current, power, SOC, temperature)
+  - Cache invalidation and retrieval methods for individual devices and bulk operations
+  - CachedTelemetryData wrapper preserving device ID, timestamp, telemetry type, and complete sensor readings
+- **Enhanced Telemetry Processing**: Modified DeviceTelemetryProcessor to cache data after database storage
+  - cacheLatestTelemetryFromEntity() method preserving all raw telemetry fields from saved entities
+  - Fixed caching to capture actual sensor data instead of limited DTO metadata
+  - Real-time cache updates on each MQTT telemetry message processing
+  - Cache data includes device type classification (BMS, SOLAR_ARRAY, EV_CHARGER)
+- **Site Overview API**: New comprehensive REST endpoint for site monitoring dashboards
+  - GET /api/v1/sites/{siteId}/overview - Complete site overview with all devices and cached telemetry
+  - SiteOverviewDTO with site information, device list, and aggregated summary statistics
+  - SiteDeviceDTO containing device details with latest cached telemetry data
+  - Site summary with device counts (total/online/offline/alerting) and energy metrics
+- **Site Overview Service**: Business logic layer for site data aggregation
+  - SiteOverviewService combining site information, device data, and cached telemetry
+  - Energy metrics calculation from cached telemetry (total power, average voltage/current)
+  - Real-time aggregation of site-level statistics from individual device data
+  - Device status analysis and alerting device identification
+- **Spring Cache Configuration**: Production-ready caching infrastructure
+  - CacheConfig with ConcurrentMapCacheManager for in-memory caching
+  - Cache regions for deviceTelemetry, deviceStatus, and siteOverview
+  - @EnableCaching configuration for Spring Boot cache abstraction
+- **API Verification**: Comprehensive testing with live MQTT data
+  - Site overview API returning complete telemetry data: voltage (758.0V), current (-9.3A), power (-7.0kW)
+  - Energy metrics aggregation: total power (287.9kW), average voltage (631.5V), average current (120.325A)
+  - Real-time cache updates verified with MQTT telemetry simulator generating fresh data
+  - All sensor data fields preserved: SOC (80.1%), temperature (25°C), health (90%), cycle_count (1405)
+- **Performance Optimization**: Fast site overview queries without database hits for latest telemetry
+  - Cache-first approach for telemetry data retrieval improving response times
+  - Database queries only for site and device metadata, telemetry served from cache
+  - Concurrent access support for high-frequency telemetry updates and API requests
 
 **🚧 Remaining Phase 5 Tasks**
-- **5.9 Multi-Device-Type Testing**: Additional edge case testing for mixed device environments
-- **5.10 Frontend EMS Page Integration**: Replace mock data with real API calls and WebSocket subscriptions
-- **5.11 Alert Processing System**: Implement alert threshold checking and site-level aggregation
+- **5.9 Multi-Site Testing & Validation**: Extended testing across multiple sites with the new caching system
+- **5.10 Frontend EMS Page Integration**: Replace mock data with real Site Overview API calls and cached telemetry
+- **5.11 Alert Processing System**: Implement alert threshold checking and site-level aggregation with cache integration
 
 #### 📋 Phase 5 Implementation Details (October 2025)
 
@@ -420,6 +432,12 @@ class WebSocketClient {
 - `/backend/device-service/src/main/java/com/ecogrid/ems/device/config/MqttConfig.java` - Production-ready MQTT configuration with error handling and reconnection logic
 - `/backend/device-service/src/main/java/com/ecogrid/ems/device/controller/DeviceController.java` - Added /mqtt/status endpoint for connectivity monitoring
 - `/backend/device-service/src/main/java/com/ecogrid/ems/device/service/RealTimeAggregationService.java` - Kafka-based aggregation service
+- `/backend/device-service/src/main/java/com/ecogrid/ems/device/service/DeviceTelemetryCacheService.java` - In-memory telemetry caching service with Spring Cache integration
+- `/backend/device-service/src/main/java/com/ecogrid/ems/device/service/SiteOverviewService.java` - Site overview business logic with cached telemetry aggregation
+- `/backend/device-service/src/main/java/com/ecogrid/ems/device/dto/site/SiteOverviewDTO.java` - Site overview response DTO with nested device and summary data
+- `/backend/device-service/src/main/java/com/ecogrid/ems/device/dto/site/SiteDeviceDTO.java` - Device DTO with latest cached telemetry data
+- `/backend/device-service/src/main/java/com/ecogrid/ems/device/config/CacheConfig.java` - Spring Cache configuration for telemetry caching
+- `/backend/device-service/src/main/java/com/ecogrid/ems/device/controller/SiteController.java` - Enhanced with site overview endpoint
 - `/backend/device-service/src/test/java/com/ecogrid/ems/device/integration/RealTimeAggregationIntegrationTest.java` - Comprehensive integration testing with corrected field mappings
 - `/backend/analytics-service/src/main/java/com/ecogrid/ems/analytics/controller/EMSController.java` - EMS-specific REST endpoints
 - `/backend/analytics-service/src/main/java/com/ecogrid/ems/analytics/service/EMSAnalyticsService.java` - EMS analytics service layer
@@ -433,9 +451,11 @@ class WebSocketClient {
 - **Real-time Data Pipeline**: Complete MQTT → Device Service → Kafka → Analytics Service flow
 - **Device Type Flexibility**: JSONB-based telemetry storage supporting any device type schema
 - **Site-level Aggregation**: Real-time calculation of site metrics from individual device data with validated calculations
-- **Comprehensive APIs**: 10 new REST endpoints supporting full EMS dashboard functionality
+- **Comprehensive APIs**: 11 new REST endpoints supporting full EMS dashboard functionality
+- **Telemetry Caching System**: High-performance in-memory caching for instant access to latest device telemetry
+- **Site Overview API**: Complete site monitoring endpoint with cached telemetry and energy metrics aggregation
 - **Mock Data Integration**: Development-ready service with realistic data for immediate frontend work
-- **Performance Optimization**: Proper database indexing for time-series queries and real-time lookups
+- **Performance Optimization**: Cache-first telemetry retrieval with proper database indexing for time-series queries
 - **Aggregation Calculation Fixes**: Resolved timestamp parsing, device type matching, and field name alignment issues for accurate real-time metrics
 
 #### ✅ Backend Issues Resolution (COMPLETED - October 2025)
