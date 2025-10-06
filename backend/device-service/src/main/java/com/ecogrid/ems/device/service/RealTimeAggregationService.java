@@ -4,12 +4,12 @@ import com.ecogrid.ems.device.entity.Device;
 import com.ecogrid.ems.device.entity.DeviceStatusCache;
 import com.ecogrid.ems.device.repository.DeviceRepository;
 import com.ecogrid.ems.device.repository.DeviceStatusCacheRepository;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,30 +33,24 @@ public class RealTimeAggregationService {
     private final DeviceRepository deviceRepository;
     private final SimpMessagingTemplate messagingTemplate;
     private final KafkaTemplate<String, Object> kafkaTemplate;
-    private final ObjectMapper objectMapper;
 
     @Autowired
     public RealTimeAggregationService(DeviceStatusCacheRepository statusCacheRepository,
                                      DeviceRepository deviceRepository,
                                      SimpMessagingTemplate messagingTemplate,
-                                     KafkaTemplate<String, Object> kafkaTemplate,
-                                     ObjectMapper objectMapper) {
+                                     KafkaTemplate<String, Object> kafkaTemplate) {
         this.statusCacheRepository = statusCacheRepository;
         this.deviceRepository = deviceRepository;
         this.messagingTemplate = messagingTemplate;
         this.kafkaTemplate = kafkaTemplate;
-        this.objectMapper = objectMapper;
     }
 
     /**
      * Listen to device telemetry messages from Kafka and perform real-time aggregations
      */
     @KafkaListener(topics = "device-telemetry", groupId = "aggregation-service")
-    public void processDeviceTelemetry(String message) {
+    public void processDeviceTelemetry(@Payload Map<String, Object> telemetryMessage) {
         try {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> telemetryMessage = objectMapper.readValue(message, Map.class);
-            
             Long siteId = ((Number) telemetryMessage.get("siteId")).longValue();
             String deviceType = (String) telemetryMessage.get("deviceType");
             @SuppressWarnings("unchecked")
@@ -70,10 +64,12 @@ public class RealTimeAggregationService {
                 case "BATTERY_STORAGE":
                     aggregateBMSData(siteId, telemetryData);
                     break;
+                case "SOLAR ARRAY":
                 case "SOLAR_ARRAY":
                 case "SOLAR_INVERTER":
                     aggregateSolarData(siteId, telemetryData);
                     break;
+                case "EV CHARGER":
                 case "EV_CHARGER":
                     aggregateEVChargerData(siteId, telemetryData);
                     break;

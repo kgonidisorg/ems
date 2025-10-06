@@ -193,6 +193,7 @@ public class DeviceTelemetryProcessor {
                         return parseGenericTelemetry(payload);
                     }
                     
+                case "SOLAR ARRAY":
                 case "SOLAR_ARRAY":
                 case "SOLAR_INVERTER":
                     try {
@@ -202,6 +203,7 @@ public class DeviceTelemetryProcessor {
                         return parseGenericTelemetry(payload);
                     }
                     
+                case "EV CHARGER":
                 case "EV_CHARGER":
                     try {
                         return objectMapper.readValue(payload, EVChargerTelemetryDTO.class);

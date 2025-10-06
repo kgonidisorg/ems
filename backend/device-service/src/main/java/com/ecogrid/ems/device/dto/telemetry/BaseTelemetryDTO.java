@@ -15,7 +15,7 @@ public abstract class BaseTelemetryDTO {
     private Long deviceId;
 
     @NotNull
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSSSS")
     private LocalDateTime timestamp;
 
     private Map<String, Object> qualityIndicators;
