@@ -110,9 +110,18 @@ public class DeviceTelemetryProcessor {
                 telemetryDTO.setTimestamp(LocalDateTime.now());
             }
 
-            // Store raw telemetry
+            // Store raw telemetry - use raw payload for generic telemetry to preserve sensor data
             logger.info("💾 Creating and saving telemetry entity...");
-            DeviceTelemetry telemetry = createTelemetryEntity(device, telemetryDTO);
+            DeviceTelemetry telemetry;
+            
+            // Check if this is a generic telemetry DTO (anonymous class) - if so, use raw payload
+            if (telemetryDTO.getClass().getName().contains("$")) {
+                logger.info("🔧 Using raw payload for generic telemetry to preserve sensor data");
+                telemetry = createTelemetryEntityFromPayload(device, payload, telemetryDTO.getTimestamp());
+            } else {
+                logger.info("🎯 Using typed telemetry DTO");
+                telemetry = createTelemetryEntity(device, telemetryDTO);
+            }
             logger.info("📊 Telemetry entity created with device ID: {} and timestamp: {}", telemetry.getDevice().getId(), telemetry.getTimestamp());
             DeviceTelemetry savedTelemetry = telemetryRepository.save(telemetry);
             logger.info("✅ Saved telemetry with ID: {} for device: {} at timestamp: {}", 
@@ -157,18 +166,31 @@ public class DeviceTelemetryProcessor {
      */
     private TopicMetadata parseTopicMetadata(String topic) {
         try {
-            // Topic format: ecogrid/sites/{siteId}/devices/{deviceSerial}/telemetry/{dataType}
+            // Topic format: ecogrid/site{N}/{deviceType}/{deviceId}
             String[] parts = topic.split("/");
-            if (parts.length < 6 || !"ecogrid".equals(parts[0]) || !"sites".equals(parts[1]) 
-                || !"devices".equals(parts[3]) || !"telemetry".equals(parts[5])) {
-                logger.warn("Invalid topic format: {}, expected: ecogrid/sites/{{siteId}}/devices/{{deviceSerial}}/telemetry/{{dataType}}", topic);
+            if (parts.length < 4 || !"ecogrid".equals(parts[0])) {
+                logger.warn("Invalid topic format: {}, expected: ecogrid/site{{N}}/{{deviceType}}/{{deviceId}}", topic);
                 return null;
             }
 
+            // Extract site number from "site1", "site2", etc.
+            String siteStr = parts[1];
+            if (!siteStr.startsWith("site")) {
+                logger.warn("Invalid site format in topic: {}, expected: site{{N}}", siteStr);
+                return null;
+            }
+            
+            Long siteId = Long.parseLong(siteStr.substring(4)); // Remove "site" prefix
+            String deviceType = parts[2]; // bms, solar, evcharger
+            String deviceId = parts[3]; // 001, 002, etc.
+            
+            // Create device serial number based on pattern used in seeding: {TYPE}-SITE{N}-{ID}
+            String deviceSerial = deviceType.toUpperCase() + "-SITE" + siteId + "-" + deviceId;
+            
             return new TopicMetadata(
-                Long.parseLong(parts[2]), // siteId
-                parts[4], // deviceSerial (String, not Long!)
-                parts.length > 6 ? parts[6] : "default" // dataType
+                siteId,
+                deviceSerial,
+                "telemetry" // default data type
             );
         } catch (NumberFormatException | ArrayIndexOutOfBoundsException e) {
             logger.warn("Error parsing topic: {}", topic, e);
@@ -230,7 +252,7 @@ public class DeviceTelemetryProcessor {
         @SuppressWarnings("unchecked")
         Map<String, Object> data = objectMapper.readValue(payload, Map.class);
         
-        // Create a basic telemetry DTO
+        // Create a basic telemetry DTO that preserves all sensor data
         BaseTelemetryDTO dto = new BaseTelemetryDTO() {
             private Long deviceId;
             private LocalDateTime timestamp;
@@ -263,7 +285,7 @@ public class DeviceTelemetryProcessor {
             dto.setTimestamp(LocalDateTime.now());
         }
         
-        logger.info("✅ Successfully created generic telemetry DTO");
+        logger.info("✅ Successfully created generic telemetry DTO with {} data fields", data.size());
         return dto;
     }
 
@@ -284,6 +306,29 @@ public class DeviceTelemetryProcessor {
         
         logger.info("📊 Created telemetry entity with data: {}", telemetry.getData());
         return telemetry;
+    }
+    
+    /**
+     * Create DeviceTelemetry entity directly from raw payload (for generic telemetry)
+     */
+    private DeviceTelemetry createTelemetryEntityFromPayload(Device device, String payload, LocalDateTime timestamp) {
+        try {
+            logger.info("📊 Creating telemetry entity directly from payload");
+            @SuppressWarnings("unchecked") 
+            Map<String, Object> data = objectMapper.readValue(payload, Map.class);
+            logger.info("📊 Raw payload data map: {}", data);
+            logger.info("📊 Raw data voltage: {}, current: {}, soc: {}", data.get("voltage"), data.get("current"), data.get("soc"));
+            
+            DeviceTelemetry telemetry = new DeviceTelemetry(device, timestamp, data);
+            telemetry.setProcessedAt(LocalDateTime.now());
+            
+            logger.info("📊 Created telemetry entity with raw data: {}", telemetry.getData());
+            return telemetry;
+        } catch (JsonProcessingException e) {
+            logger.error("❌ Error creating telemetry entity from payload", e);
+            // Fallback to empty data
+            return new DeviceTelemetry(device, timestamp, new HashMap<>());
+        }
     }
 
     /**

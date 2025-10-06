@@ -42,6 +42,7 @@ mqtt:
   client-id: ${MQTT_CLIENT_ID:device-service}
   username: ${MQTT_USERNAME:ems_mqtt}
   password: ${MQTT_PASSWORD:ems_mqtt_password}
+  topic-pattern: "ecogrid/+/+/+"
   topics:
     telemetry: "ems/+/+/telemetry"
     commands: "ems/+/+/commands"

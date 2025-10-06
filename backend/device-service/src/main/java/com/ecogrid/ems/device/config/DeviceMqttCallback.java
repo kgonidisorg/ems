@@ -38,11 +38,22 @@ public class DeviceMqttCallback implements MqttCallback {
             logger.info("🔍 Message details - QoS: {}, Retained: {}, Duplicate: {}", 
                 message.getQos(), message.isRetained(), message.isDuplicate());
             
-            // Process telemetry messages
-            if (topic.contains("/telemetry/")) {
-                logger.info("📊 Processing telemetry message for topic: {}", topic);
+            // Process messages based on topic structure
+            // Expected patterns: ecogrid/site{N}/{deviceType}/{deviceId}
+            if (topic.startsWith("ecogrid/") && topic.split("/").length >= 4) {
+                String[] topicParts = topic.split("/");
+                String siteId = topicParts[1];  // site1, site2, etc.
+                String deviceType = topicParts[2];  // bms, solar, ev
+                String deviceId = topicParts[3];    // 001, 002, etc.
+                
+                logger.info("📊 Processing device telemetry - Site: {}, Type: {}, Device: {}", siteId, deviceType, deviceId);
                 telemetryProcessor.processTelemetryMessage(topic, payload);
                 logger.info("✅ Telemetry processing completed for topic: {}", topic);
+            } else if (topic.contains("/telemetry/")) {
+                // Legacy telemetry pattern support
+                logger.info("📊 Processing legacy telemetry message for topic: {}", topic);
+                telemetryProcessor.processTelemetryMessage(topic, payload);
+                logger.info("✅ Legacy telemetry processing completed for topic: {}", topic);
             } else if (topic.contains("/alerts/")) {
                 // Handle alert messages
                 logger.info("🚨 Processing alert message for topic: {}", topic);

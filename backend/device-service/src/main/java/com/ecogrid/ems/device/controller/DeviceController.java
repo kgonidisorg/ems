@@ -4,6 +4,7 @@ import com.ecogrid.ems.device.dto.DeviceRequest;
 import com.ecogrid.ems.device.dto.DeviceResponse;
 import com.ecogrid.ems.device.entity.Device;
 import com.ecogrid.ems.device.service.DeviceService;
+import com.ecogrid.ems.device.service.MqttConnectionService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,9 +30,11 @@ public class DeviceController {
     private static final Logger logger = LoggerFactory.getLogger(DeviceController.class);
 
     private final DeviceService deviceService;
+    private final MqttConnectionService mqttConnectionService;
 
-    public DeviceController(DeviceService deviceService) {
+    public DeviceController(DeviceService deviceService, MqttConnectionService mqttConnectionService) {
         this.deviceService = deviceService;
+        this.mqttConnectionService = mqttConnectionService;
     }
 
     /**
@@ -303,13 +306,25 @@ public class DeviceController {
     }
 
     /**
-     * Health check endpoint
+     * Health check endpoint for devices endpoint
      */
-    @GetMapping("/health")
+    @GetMapping("/actuator/health")
     public ResponseEntity<?> health() {
         return ResponseEntity.ok(Map.of(
                 "status", "UP",
                 "service", "device-service-devices",
+                "timestamp", System.currentTimeMillis()
+        ));
+    }
+
+    /**
+     * MQTT connection status endpoint for debugging
+     */
+    @GetMapping("/mqtt/status")
+    public ResponseEntity<?> mqttStatus() {
+        return ResponseEntity.ok(Map.of(
+                "connected", mqttConnectionService.isConnected(),
+                "status", mqttConnectionService.getConnectionStatus(),
                 "timestamp", System.currentTimeMillis()
         ));
     }
