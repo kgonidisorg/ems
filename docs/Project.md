@@ -296,10 +296,10 @@ class WebSocketClient {
 - **Frontend Authentication Infrastructure**: 100% Complete ✅ (Components built and tested)
 - **Frontend-Backend Integration**: 100% Complete ✅ (Auth system fully operational)
 - **Real-time Data Integration**: 100% Complete ✅ (Phase 4-2 with WebSocket and API integration)
-- **🚧 Phase 5: Real-time EMS Integration**: 75% Complete (IN PROGRESS - October 2025)
+- **🚧 Phase 5: Real-time EMS Integration**: 85% Complete (IN PROGRESS - October 2025)
 
 ### 🎯 Current Development Focus (October 2025)
-**Phase 5: Real-time EMS Integration** is currently 75% complete with significant progress on analytics integration testing. The database schema enhancements, device telemetry processing, real-time aggregation service, Analytics Service APIs, and aggregation calculation fixes have been successfully implemented. The next focus is on WebSocket real-time updates and frontend integration.
+**Phase 5: Real-time EMS Integration** is currently 85% complete with successful implementation of WebSocket real-time messaging infrastructure. The database schema enhancements, device telemetry processing, real-time aggregation service, Analytics Service APIs, aggregation calculation fixes, and WebSocket infrastructure have been successfully implemented. The next focus is on extending WebSocket data payloads and comprehensive frontend EMS dashboard integration.
 
 ### 🔧 Recent Backend Infrastructure Updates (October 2025)
 
@@ -361,11 +361,28 @@ class WebSocketClient {
   - Verified realistic aggregation calculations for BMS (totalCapacity: 100.0, avgSOC: 85.0), Solar Array (totalOutput: 131.0, dailyYield: 900.0), and EV Charger (totalChargers: 2, activeSessions: 2)
   - Implemented proper Kafka topic verification with TestContainers for site-level aggregation metrics
 
+**✅ 5.7 WebSocket Real-time Testing (COMPLETED - October 2025)**
+- **WebSocketConfig**: Complete STOMP WebSocket configuration with message brokers, converters, and SockJS fallback
+  - STOMP endpoint registration at `/ws` with cross-origin support
+  - Message broker configuration for `/topic` and `/queue` destinations
+  - JSON message converter integration with MappingJackson2MessageConverter
+- **Real-time Messaging Pipeline**: End-to-end MQTT → Kafka → WebSocket broadcast functionality
+  - RealTimeAggregationService integration with SimpMessagingTemplate
+  - Site-specific WebSocket broadcasting on telemetry processing
+  - Kafka listener triggering WebSocket updates for dashboard real-time data
+- **WebSocketRealTimeIntegrationTest**: Comprehensive integration testing suite
+  - MQTT-to-WebSocket message flow validation with embedded broker
+  - TestWebSocketConfig for embedded WebSocket testing environment
+  - End-to-end pipeline testing from MQTT publish to WebSocket destination
+- **Dependencies**: Added `spring-boot-starter-websocket` to device-service POM
+- **Message Destinations**: Site-specific WebSocket topics (`/topic/sites/{siteId}/dashboard`)
+- **Current Limitation**: WebSocket payloads contain basic metadata only (siteId, timestamp, type)
+
 **🚧 Remaining Phase 5 Tasks**
-- **5.7 WebSocket Real-time Testing**: Replace mocked WebSocket with actual integration tests  
-- **5.8 Multi-Device-Type Testing**: Additional edge case testing for mixed device environments
-- **5.9 Frontend EMS Page Integration**: Replace mock data with real API calls and WebSocket subscriptions
-- **5.10 Alert Processing System**: Implement alert threshold checking and site-level aggregation
+- **5.8 WebSocket Data Enhancement**: Extend WebSocket payloads to include comprehensive EMS dashboard data (BMS, Solar, EV metrics)
+- **5.9 Multi-Device-Type Testing**: Additional edge case testing for mixed device environments
+- **5.10 Frontend EMS Page Integration**: Replace mock data with real API calls and WebSocket subscriptions
+- **5.11 Alert Processing System**: Implement alert threshold checking and site-level aggregation
 
 #### 📋 Phase 5 Implementation Details (October 2025)
 
@@ -1379,8 +1396,223 @@ public class EMSWebSocketService {
 }
 ```
 
+#### 5.8 **WebSocket Data Enhancement** (Next Priority) 🚧 READY TO START
+**Priority: CRITICAL** | **Target**: Device Service WebSocket Integration | **Status**: 🚧 Ready to Start
+
+The current WebSocket infrastructure publishes basic metadata only. This section outlines the comprehensive data structure needed to support the full EMS dashboard with real-time updates for all sections.
+
+**5.8.1 Current WebSocket Limitation**
+```javascript
+// Current basic WebSocket message structure
+{
+  "siteId": "site1",
+  "timestamp": "2024-01-15T10:30:00.123456",
+  "type": "telemetry_update"
+}
+```
+
+**5.8.2 Required EMS Dashboard Data Structure**
+
+Based on the frontend EMS page requirements, the WebSocket messages need to include comprehensive data for all dashboard sections:
+
+```typescript
+// Complete WebSocket message structure for EMS dashboard
+interface EMSWebSocketMessage {
+  siteId: string;
+  timestamp: string;
+  type: "site_update" | "device_update" | "alert_update";
+  
+  // Site Information Section
+  siteInfo: {
+    location: string;           // "New York, USA"
+    geo: string;               // "40.7128° N, 74.0060° W"
+    contact: string;           // "+1 (555) 123-4567"
+    email: string;             // "contact@ecogrid.com"
+    website: string;           // "www.ecogrid.com"
+    status: "ONLINE" | "OFFLINE" | "MAINTENANCE";
+    lastUpdated: string;       // ISO timestamp
+  };
+  
+  // Battery Management System Section
+  batterySystem: {
+    soc: number;               // State of Charge (%)
+    chargeRate: number;        // Charge/Discharge Rate (kW)
+    temperature: number;       // Battery Temperature (°C)
+    remainingCapacity: number; // Remaining Capacity (kWh)
+    healthStatus: string;      // "Good" | "Fair" | "Poor"
+    efficiency: number;        // Round-Trip Efficiency (%)
+    targetBand: { min: number; max: number }; // Target SOC band
+    avgModules: number;        // Average of 16 modules
+    nominalCapacity: number;   // Nominal: 1 MWh
+    cycles: { current: number; max: number }; // Cycles: 1,200 / 5,000
+  };
+  
+  // Solar Array Section
+  solarArray: {
+    currentOutput: number;     // Current Output (kW)
+    energyYield: number;       // Today's Energy Yield (kWh)
+    panelTemperature: number;  // Panel Temperature (°C)
+    irradiance: number;        // Irradiance (W/m²)
+    inverterEfficiency: number; // Inverter Efficiency (%)
+    peakTime: string;          // Peak time (e.g., "14:00")
+    yesterdayComparison: string; // e.g., "+5% vs. yesterday"
+    cloudCover: number;        // Cloud cover (%)
+    inverterModel: string;     // "SMA Sunny Boy 5.0"
+    safeOperating: boolean;    // < 60°C
+  };
+  
+  // EV Charger Station Section
+  evCharger: {
+    activeSessions: number;    // Active Sessions (count)
+    totalPorts: number;        // Total ports (e.g., 10)
+    availablePorts: number;    // Available ports (e.g., 7)
+    powerDelivered: number;    // Power Delivered Today (kWh)
+    avgSessionDuration: number; // Avg Session Duration (min)
+    revenue: number;           // Revenue Today ($)
+    faults: number;            // Faults / Alerts
+    uptime: number;            // Uptime (%)
+    avgPerSession: number;     // Avg per session: 40 kWh
+    peakHours: string;         // Peak hours: "17:00–19:00"
+    rate: number;              // Rate: $0.15/kWh
+  };
+  
+  // Real-time Operational Data
+  operationalData: {
+    totalDevices: number;      // Total device count
+    onlineDevices: number;     // Online device count
+    offlineDevices: number;    // Offline device count
+    faultDevices: number;      // Devices with faults
+    totalActiveAlerts: number; // Active alerts count
+    systemUptime: number;      // Overall system uptime (%)
+    networkStatus: "ONLINE" | "OFFLINE"; // Live network status
+  };
+  
+  // Forecast & Scheduler Data
+  forecast: Array<{
+    time: string;              // "08:00", "10:00", etc.
+    irradiance: number;        // W/m²
+  }>;
+  
+  schedule: Array<{
+    task: string;              // "Battery Charging", "Grid Export", etc.
+    time: string;              // "08:00"
+  }>;
+}
+```
+
+**5.8.3 Implementation Requirements**
+
+**Backend Changes Required:**
+
+1. **Enhanced RealTimeAggregationService**
+   ```java
+   private void publishSiteUpdate(Long siteId) {
+       try {
+           EMSWebSocketMessage message = buildComprehensiveMessage(siteId);
+           messagingTemplate.convertAndSend("/topic/sites/" + siteId + "/dashboard", message);
+       } catch (Exception e) {
+           logger.error("Error publishing comprehensive site update", e);
+       }
+   }
+   
+   private EMSWebSocketMessage buildComprehensiveMessage(Long siteId) {
+       // Aggregate data from all device types
+       List<DeviceStatusCache> bmsDevices = getBMSDevicesForSite(siteId);
+       List<DeviceStatusCache> solarDevices = getSolarDevicesForSite(siteId);
+       List<DeviceStatusCache> evDevices = getEVDevicesForSite(siteId);
+       
+       // Build comprehensive message with all sections
+       return EMSWebSocketMessage.builder()
+           .siteId(siteId.toString())
+           .timestamp(LocalDateTime.now())
+           .type("site_update")
+           .siteInfo(buildSiteInfo(siteId))
+           .batterySystem(aggregateBMSData(bmsDevices))
+           .solarArray(aggregateSolarData(solarDevices))
+           .evCharger(aggregateEVData(evDevices))
+           .operationalData(buildOperationalData(siteId))
+           .forecast(getForecastData(siteId))
+           .schedule(getScheduleData(siteId))
+           .build();
+   }
+   ```
+
+2. **New DTO Classes**
+   - `EMSWebSocketMessage.java` - Main WebSocket message container
+   - `SiteInfoData.java` - Site information data structure
+   - `BatterySystemData.java` - Comprehensive BMS data aggregation
+   - `SolarArrayData.java` - Solar array metrics and status
+   - `EVChargerData.java` - EV charger station data
+   - `OperationalData.java` - Real-time operational metrics
+
+3. **Database Integration**
+   - Site information from `sites` table
+   - Device relationships and metadata
+   - Real-time telemetry aggregation
+   - Alert counts and status information
+   - Forecast data integration (weather API)
+   - Schedule data from configuration
+
+**Frontend Changes Required:**
+
+1. **WebSocket Client Enhancement**
+   ```typescript
+   // Enhanced WebSocket client with comprehensive data handling
+   const websocketClient = new WebSocketClient('/ws');
+   
+   websocketClient.subscribe(`/topic/sites/${siteId}/dashboard`, (message: EMSWebSocketMessage) => {
+       // Update all dashboard sections with real data
+       setSiteInfo(message.siteInfo);
+       setBatterySystem(message.batterySystem);
+       setSolarArray(message.solarArray);
+       setEvCharger(message.evCharger);
+       setOperationalData(message.operationalData);
+       setForecast(message.forecast);
+       setSchedule(message.schedule);
+   });
+   ```
+
+2. **State Management Updates**
+   - Replace all mock `useState` with WebSocket-driven state
+   - Remove mock data generation intervals
+   - Add loading states during WebSocket connection
+   - Error handling for connection failures
+
+3. **Component Integration**
+   - Remove hardcoded site data (New York, Los Angeles, etc.)
+   - Replace with dynamic site selection from API
+   - Update all metrics to use real-time data
+   - Implement real alert system
+
+**5.8.4 Implementation Priority**
+
+**Phase 1: Core Data Enhancement**
+1. Implement EMSWebSocketMessage DTO structure
+2. Enhance RealTimeAggregationService with comprehensive data building
+3. Add database queries for site information and metadata
+4. Test WebSocket message publishing with full data
+
+**Phase 2: Frontend Integration**
+1. Update WebSocket client to handle comprehensive messages
+2. Replace mock data with WebSocket-driven state management
+3. Implement proper loading and error states
+4. Add site selection with dynamic data loading
+
+**Phase 3: Advanced Features**
+1. Forecast data integration (weather API)
+2. Scheduler integration with real task management
+3. Alert threshold configuration
+4. One-click control implementation
+
+**Success Criteria:**
+- All EMS dashboard sections populated with real-time data
+- Site selection dynamically loads different site data
+- WebSocket updates reflect actual device telemetry changes
+- No mock data remaining in production dashboard
+- Real-time alerts and operational status working
+
 #### 5.5 **Frontend EMS Page Integration** (Weeks 5-6) 🚧 PENDING
-**Priority: CRITICAL** | **Target**: Frontend React Components | **Status**: 🚧 Pending WebSocket
+**Priority: CRITICAL** | **Target**: Frontend React Components | **Status**: 🚧 Pending WebSocket Enhancement
 
 **5.5.1 Enhanced Site Management**
 ```typescript
