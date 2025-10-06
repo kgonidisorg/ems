@@ -31,17 +31,26 @@ export class AuthService {
    */
   static async logout(): Promise<void> {
     try {
-      // Call logout endpoint if available
+      // Call logout endpoint to invalidate server-side session
+      // This is optional - if it fails, we still proceed with local cleanup
       await apiRequest<void>(() =>
         apiGateway.post('/auth/logout')
       );
     } catch (error) {
-      // Even if the API call fails, we should clear local storage
-      console.warn('Logout API call failed, but clearing local storage:', error);
+      // Log the error in development, but don't show it to users
+      // The logout API call failing is not critical since we clear local storage anyway
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Logout API call failed (non-critical):', error);
+      }
+      // In production, we might want to send this to an error tracking service
+      // but not show it to the user since local logout still works
     } finally {
-      // Always clear local storage
+      // Always clear local storage - this is the critical part for security
       TokenManager.removeToken();
       TokenManager.removeUser();
+      
+      // Trigger a custom event to notify other parts of the app
+      window.dispatchEvent(new CustomEvent('auth:logout'));
     }
   }
 

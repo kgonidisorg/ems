@@ -60,18 +60,8 @@ public class SecurityConfig {
             .sessionManagement(session -> 
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(authz -> authz
-                // Public endpoints
-                .requestMatchers("/api/v1/auth/login", 
-                               "/api/v1/auth/register", 
-                               "/api/v1/auth/forgot-password",
-                               "/api/v1/auth/reset-password",
-                               "/actuator/health",
-                               "/actuator/info").permitAll()
-                // All other requests require authentication
-                .anyRequest().authenticated()
-            )
-            .authenticationProvider(authenticationProvider());
-
+                .anyRequest().permitAll()
+            );
         return http.build();
     }
 

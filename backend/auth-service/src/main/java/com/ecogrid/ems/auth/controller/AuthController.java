@@ -60,12 +60,11 @@ public class AuthController {
         }
 
         UserInfo userInfo = authService.registerUser(
-            registerRequest.email(),
-            registerRequest.password(),
-            registerRequest.firstName(),
-            registerRequest.lastName(),
-            role
-        );
+                registerRequest.email(),
+                registerRequest.password(),
+                registerRequest.firstName(),
+                registerRequest.lastName(),
+                role);
 
         logger.info("User registered successfully: {}", registerRequest.email());
         return ResponseEntity.status(HttpStatus.CREATED).body(userInfo);
@@ -79,17 +78,17 @@ public class AuthController {
         try {
             String resetToken = authService.generatePasswordResetToken(request.email());
             logger.info("Password reset token generated for user: {}", request.email());
-            
+
             // In a real application, you would send this token via email
             // For now, we'll return it in the response (NOT RECOMMENDED FOR PRODUCTION)
             return ResponseEntity.ok(Map.of(
-                "message", "Password reset token generated",
-                "token", resetToken // Remove this in production
+                    "message", "Password reset token generated",
+                    "token", resetToken // Remove this in production
             ));
         } catch (Exception e) {
             logger.error("Failed to generate password reset token for user: {}", request.email(), e);
             return ResponseEntity.badRequest()
-                .body(Map.of("error", "Failed to generate reset token"));
+                    .body(Map.of("error", "Failed to generate reset token"));
         }
     }
 
@@ -105,11 +104,11 @@ public class AuthController {
         } catch (IllegalArgumentException e) {
             logger.warn("Password reset failed: {}", e.getMessage());
             return ResponseEntity.badRequest()
-                .body(Map.of("error", e.getMessage()));
+                    .body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
             logger.error("Password reset failed", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Map.of("error", "Password reset failed"));
+                    .body(Map.of("error", "Password reset failed"));
         }
     }
 
@@ -117,7 +116,6 @@ public class AuthController {
      * Change password endpoint (authenticated users only)
      */
     @PostMapping("/change-password")
-    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
         try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -130,7 +128,7 @@ public class AuthController {
         } catch (Exception e) {
             logger.error("Password change failed", e);
             return ResponseEntity.badRequest()
-                .body(Map.of("error", e.getMessage()));
+                    .body(Map.of("error", e.getMessage()));
         }
     }
 
@@ -138,11 +136,13 @@ public class AuthController {
      * Get current user profile
      */
     @GetMapping("/profile")
-    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> getProfile() {
+        logger.info("getProfile endpoint invoked");
         try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             String email = authentication.getName();
+            logger.info("getProfile: email from authentication = {}", email);
+            logger.info("getProfile: email from authentication = {}", email);
 
             Optional<UserInfo> userInfo = authService.getUserInfo(email);
             if (userInfo.isPresent()) {
@@ -153,7 +153,7 @@ public class AuthController {
         } catch (Exception e) {
             logger.error("Failed to get user profile", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Map.of("error", "Failed to get user profile"));
+                    .body(Map.of("error", "Failed to get user profile"));
         }
     }
 
@@ -177,7 +177,36 @@ public class AuthController {
         } catch (Exception e) {
             logger.error("Profile update failed", e);
             return ResponseEntity.badRequest()
-                .body(Map.of("error", e.getMessage()));
+                    .body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * User logout endpoint
+     * For JWT tokens, logout is primarily handled client-side by removing the
+     * token.
+     * This endpoint is for logging purposes and future token blacklisting if
+     * needed.
+     */
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout() {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String email = authentication.getName();
+
+            // Log the logout event for security auditing
+            logger.info("User logged out successfully: {}", email);
+
+            // In the future, you could add token blacklisting logic here
+            // For now, we just return a success response
+
+            return ResponseEntity.ok(Map.of(
+                    "message", "Logged out successfully",
+                    "timestamp", System.currentTimeMillis()));
+        } catch (Exception e) {
+            logger.error("Logout failed", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Logout failed"));
         }
     }
 
@@ -187,9 +216,8 @@ public class AuthController {
     @GetMapping("/health")
     public ResponseEntity<?> health() {
         return ResponseEntity.ok(Map.of(
-            "status", "UP",
-            "service", "auth-service",
-            "timestamp", System.currentTimeMillis()
-        ));
+                "status", "UP",
+                "service", "auth-service",
+                "timestamp", System.currentTimeMillis()));
     }
 }

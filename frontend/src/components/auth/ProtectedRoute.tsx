@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { AuthModal } from './AuthModal';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -16,15 +16,16 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   fallback 
 }) => {
   const { isAuthenticated, user, isLoading } = useAuth();
-  const [showAuthModal, setShowAuthModal] = useState(false);
+  const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      setShowAuthModal(true);
-    } else {
-      setShowAuthModal(false);
+      // Redirect to login page with return URL
+      const returnUrl = encodeURIComponent(pathname);
+      router.push(`/login?returnUrl=${returnUrl}`);
     }
-  }, [isAuthenticated, isLoading]);
+  }, [isAuthenticated, isLoading, router, pathname]);
 
   // Show loading spinner while checking authentication
   if (isLoading) {
@@ -81,36 +82,15 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     }
   }
 
-  // Show auth modal for unauthenticated users
+  // Show loading or redirect for unauthenticated users
   if (!isAuthenticated) {
     return (
-      <>
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
-          <div className="text-center max-w-md mx-auto p-6">
-            <div className="text-blue-600 mb-4">
-              <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
-            </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Authentication Required</h2>
-            <p className="text-gray-600 mb-6">
-              Please sign in to access the EcoGrid Energy Management System.
-            </p>
-            <button
-              onClick={() => setShowAuthModal(true)}
-              className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors"
-            >
-              Sign In
-            </button>
-          </div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-4"></div>
+          <p className="text-white">Redirecting to login...</p>
         </div>
-        
-        <AuthModal
-          isOpen={showAuthModal}
-          onClose={() => setShowAuthModal(false)}
-          initialMode="login"
-        />
-      </>
+      </div>
     );
   }
 

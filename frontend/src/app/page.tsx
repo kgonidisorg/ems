@@ -4,12 +4,15 @@ import { useState, useEffect, useCallback } from "react";
 import MapView from "@/components/MapView";
 import Topbar from "@/components/Topbar";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { useAuth } from "@/contexts/AuthContext";
 import { AnalyticsService, SiteService } from "@/lib/api";
 // import { useWebSocket } from "@/lib/websocket"; // TODO: Re-enable when backend WebSocket is implemented
 import { useThrottle } from "@/hooks/useDebounce";
 import type { DashboardResponse, Site } from "@/lib/types";
 
 export default function Home() {
+    const { isAuthenticated, isLoading: authLoading } = useAuth();
+    
     // Real-time dashboard data
     const [dashboardData, setDashboardData] =
         useState<DashboardResponse | null>(null);
@@ -63,25 +66,29 @@ export default function Home() {
     // };
 
     useEffect(() => {
-        // Initial data fetch
-        fetchDashboardData();
+        // Only fetch data if user is authenticated and auth loading is complete
+        // This prevents API calls from happening before user is properly authenticated
+        // ProtectedRoute will redirect unauthenticated users to login
+        if (!authLoading && isAuthenticated) {
+            fetchDashboardData();
 
-        // TODO: Set up WebSocket connection once backend WebSocket server is implemented
-        // connect();
-        // on('message', handleWebSocketMessage);
+            // TODO: Set up WebSocket connection once backend WebSocket server is implemented
+            // connect();
+            // on('message', handleWebSocketMessage);
 
-        // Fallback: refresh data every 5 minutes (since WebSocket is temporarily disabled)
-        const fallbackInterval = setInterval(() => {
-            throttledFetchDashboardData();
-        }, 300000); // 5 minutes
+            // Fallback: refresh data every 5 minutes (since WebSocket is temporarily disabled)
+            const fallbackInterval = setInterval(() => {
+                throttledFetchDashboardData();
+            }, 300000); // 5 minutes
 
-        return () => {
-            // off('message', handleWebSocketMessage);
-            // disconnect();
-            clearInterval(fallbackInterval);
-        };
+            return () => {
+                // off('message', handleWebSocketMessage);
+                // disconnect();
+                clearInterval(fallbackInterval);
+            };
+        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []); // Empty dependency array - only run once on mount
+    }, [authLoading, isAuthenticated]); // Run when auth state changes
 
     // Loading state
     if (loading) {

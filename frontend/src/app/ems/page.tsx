@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import EnergyFlowDiagram from "@/components/EnergyFlowDiagram";
 import Topbar from "@/components/Topbar";
@@ -26,7 +26,7 @@ import {
     FaGlobe,
 } from "react-icons/fa";
 
-const EMSPage: React.FC = () => {
+const EMSPageContent: React.FC = () => {
     const router = useRouter();
     const searchParams = useSearchParams();
     const [selectedSiteId, setSelectedSiteId] = useState<number | null>(null);
@@ -770,6 +770,21 @@ const EMSPage: React.FC = () => {
                 </section>
             </main>
         </div>
+    );
+};
+
+const EMSPage: React.FC = () => {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-4"></div>
+                    <p className="text-white">Loading...</p>
+                </div>
+            </div>
+        }>
+            <EMSPageContent />
+        </Suspense>
     );
 };
 
