@@ -1,7 +1,8 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import EnergyFlowDiagram from "@/components/EnergyFlowDiagram";
 import Topbar from "@/components/Topbar";
+import { useEMSWebSocket } from "@/hooks/useEMSWebSocket";
 import {
     FaBatteryFull,
     FaBolt,
@@ -24,47 +25,68 @@ import {
 
 const EMSPage: React.FC = () => {
     const [selectedSite, setSelectedSite] = useState<string>("New York");
+    
+    // WebSocket connection for real-time data - use siteId based on selectedSite
+    const siteId = selectedSite.toLowerCase().replace(' ', '-');
+    const { 
+        data: emsData, 
+        isConnected, 
+        hasError 
+    } = useEMSWebSocket(siteId);
 
-    const [batterySystem, setBatterySystem] = useState({
-        soc: 85,
-        chargeRate: 50,
-        temperature: 28,
-        remainingCapacity: 850,
-        healthStatus: "Good",
-        efficiency: 92,
-    });
+    // Extract battery system data from WebSocket with fallbacks
+    const batterySystem = emsData?.batterySystem || {
+        soc: 0,
+        chargeRate: 0,
+        temperature: 0,
+        remainingCapacity: 0,
+        healthStatus: "Unknown",
+        efficiency: 0,
+    };
 
-    const [solarArray, setSolarArray] = useState({
-        currentOutput: 120,
-        energyYield: 850,
-        panelTemperature: 45,
-        irradiance: 750,
-        inverterEfficiency: 97,
-    });
+    // Extract solar array data from WebSocket with fallbacks
+    const solarArray = emsData?.solarArray || {
+        currentOutput: 0,
+        energyYield: 0,
+        panelTemperature: 0,
+        irradiance: 0,
+        inverterEfficiency: 0,
+    };
 
-    const [evCharger, setEvCharger] = useState({
-        activeSessions: 3,
-        powerDelivered: 120,
-        avgSessionDuration: 32,
-        revenue: 180,
+    // Extract EV charger data from WebSocket with fallbacks
+    const evCharger = emsData?.evCharger || {
+        activeSessions: 0,
+        powerDelivered: 0,
+        avgSessionDuration: 0,
+        revenue: 0,
         faults: 0,
-        uptime: 99.8,
-    });
+        uptime: 0,
+    };
 
-    const [forecast] = useState<{ time: string; irradiance: number }[]>([
-        { time: "08:00", irradiance: 500 },
-        { time: "10:00", irradiance: 700 },
-        { time: "12:00", irradiance: 900 },
-        { time: "14:00", irradiance: 850 },
-        { time: "16:00", irradiance: 600 },
-        { time: "18:00", irradiance: 300 },
-    ]);
+    // Extract forecast data from WebSocket with fallbacks
+    const forecast = emsData.forecast?.map((item) => ({
+        time: item.time,
+        irradiance: item.irradiance || 0
+    })) || [
+        { time: "08:00", irradiance: 0 },
+        { time: "10:00", irradiance: 0 },
+        { time: "12:00", irradiance: 0 },
+        { time: "14:00", irradiance: 0 },
+        { time: "16:00", irradiance: 0 },
+        { time: "18:00", irradiance: 0 },
+    ];
 
-    const [schedule, setSchedule] = useState([
-        { task: "Battery Charging", time: "08:00" },
-        { task: "Grid Export", time: "12:00" },
-        { task: "EV Charging", time: "16:00" },
-    ]);
+    // Extract schedule data from WebSocket with fallbacks
+    const [schedule, setSchedule] = useState(
+        emsData.schedule?.map(item => ({
+            task: item.task || "Unknown",
+            time: item.time || "00:00"
+        })) || [
+            { task: "Battery Charging", time: "08:00" },
+            { task: "Grid Export", time: "12:00" },
+            { task: "EV Charging", time: "16:00" },
+        ]
+    );
 
     const sites: Record<
         string,
@@ -113,44 +135,17 @@ const EMSPage: React.FC = () => {
         },
     };
 
-    const siteInfo = sites[selectedSite];
+    // Use WebSocket site info if available, otherwise fallback to static data
+    const siteInfo = emsData.siteInfo ? {
+        location: emsData.siteInfo.location || sites[selectedSite].location,
+        geo: emsData.siteInfo.geo || sites[selectedSite].geo,
+        contact: emsData.siteInfo.contact || sites[selectedSite].contact,
+        email: emsData.siteInfo.email || sites[selectedSite].email,
+        website: emsData.siteInfo.website || sites[selectedSite].website,
+    } : sites[selectedSite];
 
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setBatterySystem((prev) => ({
-                ...prev,
-                soc: Math.max(
-                    80,
-                    Math.min(90, prev.soc + (Math.random() - 0.5) * 2)
-                ),
-                chargeRate: prev.chargeRate + (Math.random() - 0.5) * 10,
-                temperature: prev.temperature + (Math.random() - 0.5) * 2,
-            }));
-
-            setSolarArray((prev) => ({
-                ...prev,
-                currentOutput: prev.currentOutput + (Math.random() - 0.5) * 10,
-                energyYield: prev.energyYield + Math.random() * 5,
-                panelTemperature:
-                    prev.panelTemperature + (Math.random() - 0.5) * 2,
-            }));
-
-            setEvCharger((prev) => ({
-                ...prev,
-                activeSessions: Math.max(
-                    0,
-                    Math.min(
-                        10,
-                        prev.activeSessions + Math.round(Math.random() - 0.5)
-                    )
-                ),
-                powerDelivered: prev.powerDelivered + Math.random() * 5,
-                revenue: prev.revenue + Math.random() * 10,
-            }));
-        }, 3000);
-
-        return () => clearInterval(interval);
-    }, []);
+    // Real-time data is now handled by WebSocket connection
+    // No need for mock data intervals
 
     const handleDragStart = (
         event: React.DragEvent<HTMLLIElement>,
@@ -183,9 +178,25 @@ const EMSPage: React.FC = () => {
                         </h1>
                     </div>
                     <div className="flex items-center gap-4">
-                        <div className="h-3 w-3 bg-green-500 rounded-full animate-pulse"></div>
-                        <span className="text-green-400">
-                            Live Network Status
+                        <div className={`h-3 w-3 rounded-full ${
+                            isConnected 
+                                ? 'bg-green-500 animate-pulse' 
+                                : hasError 
+                                    ? 'bg-red-500' 
+                                    : 'bg-yellow-500 animate-pulse'
+                        }`}></div>
+                        <span className={`${
+                            isConnected 
+                                ? 'text-green-400' 
+                                : hasError 
+                                    ? 'text-red-400' 
+                                    : 'text-yellow-400'
+                        }`}>
+                            {isConnected 
+                                ? 'WebSocket Connected' 
+                                : hasError 
+                                    ? 'Connection Error' 
+                                    : 'Connecting...'}
                         </span>
                     </div>
                 </div>
