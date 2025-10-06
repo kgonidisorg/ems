@@ -42,13 +42,78 @@ export interface Device {
 export interface Site {
   id: number;
   name: string;
+  description?: string;
   locationLat: number;
   locationLng: number;
   capacityMw: number;
   status: 'ACTIVE' | 'INACTIVE' | 'MAINTENANCE';
+  timezone?: string;
+  address?: string;
+  contactPerson?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  deviceCount?: number;
   createdAt: string;
   updatedAt: string;
   devices?: Device[];
+}
+
+// Site Overview Types (from backend SiteOverviewDTO)
+export interface SiteOption {
+  id: number;
+  name: string;
+}
+
+export interface LatestTelemetryData {
+  timestamp: string;
+  telemetryType: string;
+  data: Record<string, unknown>;
+}
+
+export interface SiteDevice {
+  id: number;
+  serialNumber: string;
+  name: string;
+  deviceType: string;
+  model: string;
+  manufacturer: string;
+  status: 'ONLINE' | 'OFFLINE' | 'MAINTENANCE' | 'ERROR';
+  lastCommunication: string | null;
+  latestTelemetry: LatestTelemetryData | null;
+}
+
+export interface EnergyMetrics {
+  totalPowerKw: number;
+  totalEnergyKwh: number;
+  averageVoltage: number;
+  averageCurrent: number;
+}
+
+export interface SiteSummary {
+  totalDevices: number;
+  onlineDevices: number;
+  offlineDevices: number;
+  alertingDevices: number;
+  lastTelemetryUpdate: string | null;
+  energyMetrics: EnergyMetrics;
+}
+
+export interface SiteOverview {
+  id: number;
+  name: string;
+  description: string;
+  locationLat: number;
+  locationLng: number;
+  capacityMw: number;
+  status: 'ACTIVE' | 'INACTIVE' | 'MAINTENANCE';
+  timezone: string;
+  address: string;
+  lastUpdated: string;
+  devices: SiteDevice[];
+  summary: SiteSummary;
+  contactPerson: string | null;
+  contactEmail: string | null;
+  contactPhone: string | null;
 }
 
 // Analytics Types
