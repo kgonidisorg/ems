@@ -73,8 +73,9 @@ const createApiInstance = (baseURL: string): AxiosInstance => {
         // Token expired or invalid
         TokenManager.removeToken();
         TokenManager.removeUser();
-        // Redirect to login page
-        window.location.href = '/login';
+        // Since we use modal-based authentication, we'll let the auth context handle this
+        // by triggering a re-render that will show the auth modal
+        window.dispatchEvent(new CustomEvent('auth:logout'));
       }
       return Promise.reject(error);
     }
