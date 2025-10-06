@@ -44,6 +44,7 @@ public class DeviceTelemetryProcessor {
     private final ObjectMapper objectMapper;
     private final AlertService alertService;
     private final TransactionTemplate transactionTemplate;
+    private final DeviceTelemetryCacheService telemetryCacheService;
 
     @Autowired
     public DeviceTelemetryProcessor(DeviceRepository deviceRepository,
@@ -52,7 +53,8 @@ public class DeviceTelemetryProcessor {
                                    KafkaTemplate<String, Object> kafkaTemplate,
                                    ObjectMapper objectMapper,
                                    AlertService alertService,
-                                   TransactionTemplate transactionTemplate) {
+                                   TransactionTemplate transactionTemplate,
+                                   DeviceTelemetryCacheService telemetryCacheService) {
         this.deviceRepository = deviceRepository;
         this.telemetryRepository = telemetryRepository;
         this.statusCacheRepository = statusCacheRepository;
@@ -60,6 +62,7 @@ public class DeviceTelemetryProcessor {
         this.objectMapper = objectMapper;
         this.alertService = alertService;
         this.transactionTemplate = transactionTemplate;
+        this.telemetryCacheService = telemetryCacheService;
     }
 
     /**
@@ -130,6 +133,10 @@ public class DeviceTelemetryProcessor {
             logger.info("💾 Saved telemetry voltage: {}, current: {}", 
                 savedTelemetry.getData() != null ? savedTelemetry.getData().get("voltage") : "NULL_DATA",
                 savedTelemetry.getData() != null ? savedTelemetry.getData().get("current") : "NULL_DATA");
+            
+            // Cache the latest telemetry data for quick access
+            logger.info("🗂️ Caching latest telemetry for device: {}", device.getSerialNumber());
+            telemetryCacheService.cacheLatestTelemetryFromEntity(device.getId(), savedTelemetry);
             
             // Verify telemetry was saved by retrieving records for this device  
             List<DeviceTelemetry> deviceTelemetryRecords = telemetryRepository.findByDeviceSerialNumberOrderByTimestampDesc(device.getSerialNumber());

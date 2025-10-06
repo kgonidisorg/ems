@@ -2,8 +2,10 @@ package com.ecogrid.ems.device.controller;
 
 import com.ecogrid.ems.device.dto.SiteRequest;
 import com.ecogrid.ems.device.dto.SiteResponse;
+import com.ecogrid.ems.device.dto.site.SiteOverviewDTO;
 import com.ecogrid.ems.device.entity.Site;
 import com.ecogrid.ems.device.service.SiteService;
+import com.ecogrid.ems.device.service.SiteOverviewService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,9 +31,11 @@ public class SiteController {
     private static final Logger logger = LoggerFactory.getLogger(SiteController.class);
 
     private final SiteService siteService;
+    private final SiteOverviewService siteOverviewService;
 
-    public SiteController(SiteService siteService) {
+    public SiteController(SiteService siteService, SiteOverviewService siteOverviewService) {
         this.siteService = siteService;
+        this.siteOverviewService = siteOverviewService;
     }
 
     /**
@@ -171,6 +175,28 @@ public class SiteController {
             logger.error("Site deletion failed for ID: {}", siteId, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Failed to delete site"));
+        }
+    }
+
+    /**
+     * Get site overview with all devices and latest telemetry
+     */
+    @GetMapping("/{siteId}/overview")
+    public ResponseEntity<?> getSiteOverview(@PathVariable Long siteId) {
+        try {
+            Optional<SiteOverviewDTO> overview = siteOverviewService.getSiteOverview(siteId);
+            if (overview.isEmpty()) {
+                logger.warn("Site not found: {}", siteId);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(Map.of("error", "Site not found with ID: " + siteId));
+            }
+            
+            logger.info("Successfully retrieved site overview for site ID: {}", siteId);
+            return ResponseEntity.ok(overview.get());
+        } catch (Exception e) {
+            logger.error("Failed to get site overview for ID: {}", siteId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to retrieve site overview"));
         }
     }
 
