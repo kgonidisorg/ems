@@ -18,6 +18,10 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    profiles:
+      - deps
+      - backend
+      - all
 
   redis:
     image: redis:7-alpine
@@ -32,6 +36,10 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    profiles:
+      - deps
+      - backend
+      - all
 
   # MQTT Broker for IoT devices
   mosquitto:
@@ -46,10 +54,20 @@ services:
       - mosquitto_data:/mosquitto/data
       - mosquitto_logs:/mosquitto/log
     healthcheck:
-      test: ["CMD", "sh", "-c", "mosquitto_pub -h localhost -t health/check -m 'test' -q 0 || exit 1"]
+      test:
+        [
+          "CMD",
+          "sh",
+          "-c",
+          "mosquitto_pub -h localhost -t health/check -m 'test' -q 0 || exit 1",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
+    profiles:
+      - deps
+      - backend
+      - all
 
   # Message Queue - Kafka
   zookeeper:
@@ -62,6 +80,10 @@ services:
     volumes:
       - zookeeper_data:/var/lib/zookeeper/data
       - zookeeper_logs:/var/lib/zookeeper/log
+    profiles:
+      - deps
+      - backend
+      - all
 
   kafka:
     image: confluentinc/cp-kafka:7.4.0
@@ -83,10 +105,21 @@ services:
     depends_on:
       - zookeeper
     healthcheck:
-      test: ["CMD", "kafka-topics", "--bootstrap-server", "localhost:9092", "--list"]
+      test:
+        [
+          "CMD",
+          "kafka-topics",
+          "--bootstrap-server",
+          "localhost:9092",
+          "--list",
+        ]
       interval: 30s
       timeout: 10s
       retries: 5
+    profiles:
+      - deps
+      - backend
+      - all
 
   # Backend Services
   api-gateway:
@@ -120,13 +153,22 @@ services:
       notification-service:
         condition: service_started
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health"] 
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:8080/actuator/health",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 60s
     profiles:
       - backend
+      - all
 
   auth-service:
     build:
@@ -149,13 +191,22 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8081/auth/actuator/health"]
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:8081/api/v1/auth/health",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 60s
     profiles:
       - backend
+      - all
 
   device-service:
     build:
@@ -185,13 +236,22 @@ services:
       kafka:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8082/actuator/health"]
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:8082/actuator/health",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 60s
     profiles:
       - backend
+      - all
 
   analytics-service:
     build:
@@ -211,13 +271,22 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8083/analytics/actuator/health"]
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:8083/api/v1/analytics/health",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 60s
     profiles:
       - backend
+      - all
 
   notification-service:
     build:
@@ -245,13 +314,22 @@ services:
       kafka:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8084/actuator/health"]
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:8084/actuator/health",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 60s
     profiles:
       - backend
+      - all
 
   # Frontend service for local development
   frontend:
@@ -265,6 +343,7 @@ services:
       - api-gateway
     profiles:
       - frontend
+      - all
 
 volumes:
   postgres_data:

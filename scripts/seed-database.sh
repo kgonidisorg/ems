@@ -287,12 +287,15 @@ for i in {0..9}; do
     base_ip="192.168.$logical_site_id"
     
     # Create devices for this site
+
     execute_sql $DEVICE_DB_NAME "
-    INSERT INTO devices (serial_number, name, description, device_type, device_type_id, model, manufacturer, status, mqtt_topic, ip_address, mac_address, installation_date, site_id, created_at, updated_at) VALUES
-    ('BMS-SITE${logical_site_id}-001', 'Battery Management System 1', 'Primary BMS for site $logical_site_id', 'BATTERY_STORAGE', $bms_type_id, 'PowerMax Pro 2400', 'Tesla Energy', 'ONLINE', 'ecogrid/site${logical_site_id}/bms/001', '${base_ip}.101', '$(printf "00:1B:44:%02d:%02d:B1" $logical_site_id $logical_site_id)', '2024-01-15', $site_id, NOW(), NOW()),
-    ('BMS-SITE${logical_site_id}-002', 'Battery Management System 2', 'Secondary BMS for site $logical_site_id', 'BATTERY_STORAGE', $bms_type_id, 'PowerMax Pro 2400', 'Tesla Energy', 'ONLINE', 'ecogrid/site${logical_site_id}/bms/002', '${base_ip}.102', '$(printf "00:1B:44:%02d:%02d:B2" $logical_site_id $logical_site_id)', '2024-01-15', $site_id, NOW(), NOW()),
-    ('SOLAR-SITE${logical_site_id}-001', 'Solar Array System', 'Primary solar installation for site $logical_site_id', 'SOLAR_INVERTER', $solar_type_id, 'SolarEdge SE25K', 'SolarEdge', 'ONLINE', 'ecogrid/site${logical_site_id}/solar/001', '${base_ip}.201', '$(printf "00:1B:44:%02d:%02d:S1" $logical_site_id $logical_site_id)', '2024-01-10', $site_id, NOW(), NOW()),
-    ('EV-SITE${logical_site_id}-001', 'EV Charging Station', 'EV charging facility for site $logical_site_id', 'EV_CHARGER', $ev_type_id, 'Supercharger V3', 'Tesla', 'ONLINE', 'ecogrid/site${logical_site_id}/ev/001', '${base_ip}.301', '$(printf "00:1B:44:%02d:%02d:E1" $logical_site_id $logical_site_id)', '2024-01-20', $site_id, NOW(), NOW());"
+    INSERT INTO devices (
+        serial_number, name, description, model, manufacturer, status, mqtt_topic, ip_address, mac_address, installation_date, site_id, created_at, updated_at, device_type_id
+    ) VALUES
+    ('BMS-SITE${logical_site_id}-001', 'Battery Management System 1', 'Primary BMS for site $logical_site_id', 'PowerMax Pro 2400', 'Tesla Energy', 'ONLINE', 'ecogrid/site${logical_site_id}/bms/001', '${base_ip}.101', '$(printf "00:1B:44:%02d:%02d:B1" $logical_site_id $logical_site_id)', '2024-01-15', $site_id, NOW(), NOW(), $bms_type_id),
+    ('BMS-SITE${logical_site_id}-002', 'Battery Management System 2', 'Secondary BMS for site $logical_site_id', 'PowerMax Pro 2400', 'Tesla Energy', 'ONLINE', 'ecogrid/site${logical_site_id}/bms/002', '${base_ip}.102', '$(printf "00:1B:44:%02d:%02d:B2" $logical_site_id $logical_site_id)', '2024-01-15', $site_id, NOW(), NOW(), $bms_type_id),
+    ('SOLAR-SITE${logical_site_id}-001', 'Solar Array System', 'Primary solar installation for site $logical_site_id', 'SolarEdge SE25K', 'SolarEdge', 'ONLINE', 'ecogrid/site${logical_site_id}/solar/001', '${base_ip}.201', '$(printf "00:1B:44:%02d:%02d:S1" $logical_site_id $logical_site_id)', '2024-01-10', $site_id, NOW(), NOW(), $solar_type_id),
+    ('EV-SITE${logical_site_id}-001', 'EV Charging Station', 'EV charging facility for site $logical_site_id', 'Supercharger V3', 'Tesla', 'ONLINE', 'ecogrid/site${logical_site_id}/ev/001', '${base_ip}.301', '$(printf "00:1B:44:%02d:%02d:E1" $logical_site_id $logical_site_id)', '2024-01-20', $site_id, NOW(), NOW(), $ev_type_id);"
 done
 
 # Add some device configurations
