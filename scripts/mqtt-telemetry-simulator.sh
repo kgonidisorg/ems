@@ -86,7 +86,7 @@ EOF
 generate_solar_telemetry() {
     local site_id=$1
     local hour=$(date +%H)
-    
+
     # Solar power varies by time of day
     local base_power=0
     if [ $hour -ge 6 ] && [ $hour -le 18 ]; then
@@ -97,27 +97,65 @@ generate_solar_telemetry() {
             base_power=0
         fi
     fi
-    
-    local power=$(echo "scale=1; $base_power + ($RANDOM % 100)" | bc)
-    local voltage=$(echo "scale=1; 600 + ($RANDOM % 100)" | bc)
-    local current=$(echo "scale=1; $power / $voltage * 1000" | bc)
-    local temperature=$(echo "scale=1; 30 + ($RANDOM % 25)" | bc)
-    local irradiance=$(echo "scale=0; $power * 1.2" | bc)
-    local efficiency=$(echo "scale=1; 18 + ($RANDOM % 4)" | bc)
-    local device_id=$((($site_id - 1) * 4 + 3))
-    
+
+    local currentOutput=$(echo "scale=1; $base_power + ($RANDOM % 100)" | bc)
+    local energyYield=$(echo "scale=1; 200 + ($RANDOM % 300)" | bc)
+    local energyYieldTotal=$(echo "scale=1; 10000 + ($RANDOM % 5000)" | bc)
+    local panelTemperature=$(echo "scale=1; 30 + ($RANDOM % 25)" | bc)
+    local irradiance=$(echo "scale=0; $currentOutput * 1.2" | bc)
+    local ambientTemperature=$(echo "scale=1; 20 + ($RANDOM % 15)" | bc)
+    local windSpeed=$(echo "scale=2; ($RANDOM % 100) * 0.01" | bc)
+    # Ensure windSpeed is always prefixed with 0 if less than 1
+    if [[ $windSpeed == .* ]]; then
+        windSpeed="0$windSpeed"
+    fi
+    local inverterEfficiency=$(echo "scale=1; 95 + ($RANDOM % 5)" | bc)
+    local systemEfficiency=$(echo "scale=1; 90 + ($RANDOM % 10)" | bc)
+    local performanceRatio=$(echo "scale=1; 80 + ($RANDOM % 20)" | bc)
+    local inverterStatusArr=("ONLINE" "OFFLINE" "FAULT")
+    local inverterStatus=${inverterStatusArr[$((RANDOM % 3))]}
+    local alarms='["OVERVOLTAGE","UNDERVOLTAGE"]'
+    local lastCleaning="$(date -u +%Y-%m-%dT%H:%M:%S)"
+    local deviceId=$((($site_id - 1) * 4 + 3))
+    local timestamp="$(date -u +%Y-%m-%dT%H:%M:%S)"
+
+    # Generate stringData array
+    local stringData='['
+    local numStrings=$((1 + RANDOM % 3))
+    for ((i=1; i<=numStrings; i++)); do
+        [ $i -gt 1 ] && stringData+=','
+        local stringId="STR${i}"
+        local sVoltage=$(echo "scale=2; 600 + ($RANDOM % 50)" | bc)
+        local sCurrent=$(echo "scale=2; 10 + ($RANDOM % 10)" | bc)
+        local sPower=$(echo "scale=2; $sVoltage * $sCurrent / 1000" | bc)
+        local sTemperature=$(echo "scale=2; 30 + ($RANDOM % 10)" | bc)
+        # Ensure all decimals are valid JSON numbers
+        if [[ $sVoltage == .* ]]; then sVoltage="0$sVoltage"; fi
+        if [[ $sCurrent == .* ]]; then sCurrent="0$sCurrent"; fi
+        if [[ $sPower == .* ]]; then sPower="0$sPower"; fi
+        if [[ $sTemperature == .* ]]; then sTemperature="0$sTemperature"; fi
+        stringData+="{\"stringId\": \"$stringId\", \"voltage\": $sVoltage, \"current\": $sCurrent, \"power\": $sPower, \"temperature\": $sTemperature}"
+    done
+    stringData+=']'
+
     cat << EOF
 {
-  "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%S)",
-  "device_id": $device_id,
-  "power": $power,
-  "voltage": $voltage,
-  "current": $current,
-  "temperature": $temperature,
+  "deviceId": $deviceId,
+  "timestamp": "$timestamp",
+  "currentOutput": $currentOutput,
+  "energyYield": $energyYield,
+  "energyYieldTotal": $energyYieldTotal,
+  "panelTemperature": $panelTemperature,
   "irradiance": $irradiance,
-  "energy_today": $(echo "scale=1; 200 + ($RANDOM % 300)" | bc),
-  "efficiency": $efficiency,
-  "status": "ONLINE"
+  "ambientTemperature": $ambientTemperature,
+  "windSpeed": $windSpeed,
+  "inverterEfficiency": $inverterEfficiency,
+  "systemEfficiency": $systemEfficiency,
+  "performanceRatio": $performanceRatio,
+  "stringData": $stringData,
+  "inverterStatus": "$inverterStatus",
+  "alarms": $alarms,
+  "lastCleaning": "$lastCleaning"
 }
 EOF
 }
@@ -200,7 +238,7 @@ while true; do
     echo -e "${YELLOW}📡 Sending telemetry batch #$iteration at $(date)${NC}"
     
     # Send telemetry for sites 1-10
-    for site_id in {1..1}; do
+    for site_id in {1..10}; do
         echo -n "  Site $site_id: "
         
         # BMS Device 1

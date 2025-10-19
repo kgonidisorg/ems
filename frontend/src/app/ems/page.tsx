@@ -613,7 +613,7 @@ const EMSPageContent: React.FC = () => {
                                         Avg Session Duration
                                     </h3>
                                     <p className="text-3xl text-white">
-                                        {evCharger.avgSessionDuration} min
+                                        {evCharger.avgSessionDuration.toFixed(1)} min
                                     </p>
                                 </div>
                             </div>
