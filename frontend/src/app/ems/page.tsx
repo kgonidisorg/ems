@@ -25,6 +25,11 @@ import {
     FaPhone,
     FaGlobe,
 } from "react-icons/fa";
+import {
+    BMSTelemetryData,
+    EVChargerTelemetryData,
+    SolarArrayTelemetryData,
+} from "@/lib/types";
 
 const EMSPageContent: React.FC = () => {
     const router = useRouter();
@@ -87,14 +92,15 @@ const EMSPageContent: React.FC = () => {
     // Extract battery system data from site overview
     const batteryDevices =
         siteOverview?.devices.filter((d) => d.deviceType === "BMS") || [];
-    const batteryTelemetry = batteryDevices[0]?.latestTelemetry?.data;
+    const batteryTelemetry: BMSTelemetryData = (batteryDevices[0]
+        ?.latestTelemetry?.data ?? {}) as BMSTelemetryData;
     const batterySystem = {
         soc: Number(batteryTelemetry?.soc) || 0,
         chargeRate: Number(batteryTelemetry?.current) || 0,
         temperature: Number(batteryTelemetry?.temperature) || 0,
-        remainingCapacity: Number(batteryTelemetry?.energy_today) || 0,
-        healthStatus: String(batteryTelemetry?.status) || "Unknown",
-        efficiency: Number(batteryTelemetry?.health) || 0,
+        remainingCapacity: Number(batteryTelemetry?.remainingCapacity || 0),
+        healthStatus: batteryTelemetry?.healthStatus || "Unknown",
+        efficiency: batteryTelemetry.efficiency || 0,
     };
 
     // Extract solar array data from site overview
@@ -105,32 +111,36 @@ const EMSPageContent: React.FC = () => {
                 d.deviceType === "SOLAR_PANEL" ||
                 d.deviceType === "INVERTER"
         ) || [];
-    const solarTelemetry = solarDevices[0]?.latestTelemetry?.data;
+    const solarTelemetry = solarDevices[0]?.latestTelemetry?.data as
+        | SolarArrayTelemetryData
+        | undefined;
     const solarArray = {
-        currentOutput: Number(solarTelemetry?.power) || 0,
-        inverterEfficiency: Number(solarTelemetry?.efficiency) || 0,
-        energyYield: Number(solarTelemetry?.energy_today) || 0,
-        status: String(solarTelemetry?.status) || "Unknown",
-        irradiance: Number(solarTelemetry?.irradiance) || 0,
-        panelTemperature: Number(solarTelemetry?.temperature) || 0,
+        currentOutput: solarTelemetry?.currentOutput || 0,
+        inverterEfficiency: solarTelemetry?.inverterEfficiency || 0,
+        energyYield: solarTelemetry?.energyYield || 0,
+        status: solarTelemetry?.inverterStatus || "Unknown",
+        irradiance: solarTelemetry?.irradiance || 0,
+        panelTemperature: solarTelemetry?.ambientTemperature || 0,
     }; // Extract EV charger data from site overview
     const evDevices =
         siteOverview?.devices.filter((d) => d.deviceType === "EV_CHARGER") ||
         [];
-    const evTelemetry = evDevices[0]?.latestTelemetry?.data;
+    const evTelemetry = evDevices[0]?.latestTelemetry?.data as
+        | EVChargerTelemetryData
+        | undefined;
     const evCharger = {
-        activeSessions: Number(evTelemetry?.activeSessions) || 0,
-        totalSessions: Number(evTelemetry?.totalSessions) || 0,
-        powerDelivered: Number(evTelemetry?.powerDelivered) || 0,
+        activeSessions: evTelemetry?.activeSessions || 0,
+        totalSessions: evTelemetry?.totalSessions || 0,
+        powerDelivered: evTelemetry?.powerDelivered || 0,
         avgSessionDuration: Array.isArray(evTelemetry?.chargerData)
             ? evTelemetry.chargerData.reduce(
                   (acc, curr) => acc + (curr.sessionDuration || 0),
                   0
               ) / evTelemetry.chargerData.length
             : 0,
-        revenue: Number(evTelemetry?.revenue) || 0,
-        faults: Number(evTelemetry?.faults) || 0,
-        uptime: Number(evTelemetry?.uptime) || 0,
+        revenue: evTelemetry?.revenue || 0,
+        faults: evTelemetry?.faults || 0,
+        uptime: evTelemetry?.uptime || 0,
     };
 
     // Mock forecast data (will be integrated into site overview later)
@@ -565,7 +575,8 @@ const EMSPageContent: React.FC = () => {
                                         Active Sessions
                                     </h3>
                                     <p className="text-3xl text-white">
-                                        {evCharger.activeSessions} / {evCharger.totalSessions}
+                                        {evCharger.activeSessions} /{" "}
+                                        {evCharger.totalSessions}
                                     </p>
                                 </div>
                             </div>

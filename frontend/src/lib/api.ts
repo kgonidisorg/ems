@@ -1,6 +1,6 @@
 import axios, { AxiosInstance, AxiosResponse } from "axios";
 import Cookies from "js-cookie";
-import { User } from "./types";
+import { User, SiteOption } from "./types";
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:8080";
 
@@ -201,7 +201,6 @@ export const CacheManager = {
 // =============================================================================
 
 import type {
-    SiteOption,
     SiteOverview,
     Site,
     Device,
