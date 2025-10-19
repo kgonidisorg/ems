@@ -25,7 +25,7 @@ export function useAsyncData<T>(
   const {
     autoLoad = true,
     dependencies = [],
-    retryAttempts = 3,
+    retryAttempts = 0,
     retryDelay = 1000
   } = options;
 

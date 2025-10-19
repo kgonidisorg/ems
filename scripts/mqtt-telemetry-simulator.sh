@@ -45,19 +45,39 @@ generate_bms_telemetry() {
     local power=$(echo "scale=1; $current * $voltage / 1000" | bc)
     local health=$(echo "scale=1; 90 + ($RANDOM % 10)" | bc)
     
+    # Generate random values for all required fields
+    local deviceId=$((($site_id - 1) * 4 + device_num))
+    local timestamp="$(date -u +%Y-%m-%dT%H:%M:%S)"
+    local remainingCapacity=$(echo "scale=1; 40 + ($RANDOM % 20)" | bc)
+    local nominalCapacity=$(echo "scale=1; 60 + ($RANDOM % 20)" | bc)
+    local chargeRate=$(echo "scale=1; (($RANDOM % 200) - 100) * 0.1" | bc)
+    local moduleTemperatures="[$(echo "scale=1; 25 + ($RANDOM % 5)" | bc),$(echo "scale=1; 26 + ($RANDOM % 5)" | bc),$(echo "scale=1; 24 + ($RANDOM % 5)" | bc)]"
+    local healthStatusArr=("EXCELLENT" "GOOD" "FAIR" "POOR")
+    local healthStatus=${healthStatusArr[$((RANDOM % 4))]}
+    local efficiency=$(echo "scale=1; 90 + ($RANDOM % 10)" | bc)
+    local cycleCount=$((1000 + RANDOM % 500))
+    local alarms='[]'
+    local warnings='[]'
+    local lastMaintenance="$(date -u +%Y-%m-%dT%H:%M:%S)"
+
     cat << EOF
 {
-  "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)",
-  "device_id": "BMS-SITE${site_id}-$(printf "%03d" $device_num)",
-  "soc": $soc,
-  "voltage": $voltage,
-  "current": $current,
-  "temperature": $temperature,
-  "power": $power,
-  "energy_today": $(echo "scale=1; 50 + ($RANDOM % 100)" | bc),
-  "cycle_count": $((1000 + RANDOM % 500)),
-  "health": $health,
-  "status": "ONLINE"
+    "deviceId": "$deviceId",
+    "timestamp": "$timestamp",
+    "soc": $soc,
+    "remainingCapacity": $remainingCapacity,
+    "nominalCapacity": $nominalCapacity,
+    "chargeRate": $chargeRate,
+    "voltage": $voltage,
+    "current": $current,
+    "temperature": $temperature,
+    "moduleTemperatures": $moduleTemperatures,
+    "healthStatus": "$healthStatus",
+    "efficiency": $efficiency,
+    "cycleCount": $cycleCount,
+    "alarms": $alarms,
+    "warnings": $warnings,
+    "lastMaintenance": "$lastMaintenance"
 }
 EOF
 }
@@ -84,11 +104,12 @@ generate_solar_telemetry() {
     local temperature=$(echo "scale=1; 30 + ($RANDOM % 25)" | bc)
     local irradiance=$(echo "scale=0; $power * 1.2" | bc)
     local efficiency=$(echo "scale=1; 18 + ($RANDOM % 4)" | bc)
+    local device_id=$((($site_id - 1) * 4 + 3))
     
     cat << EOF
 {
-  "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)",
-  "device_id": "SOLAR-SITE${site_id}-001",
+  "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%S)",
+  "device_id": $device_id,
   "power": $power,
   "voltage": $voltage,
   "current": $current,
@@ -104,38 +125,51 @@ EOF
 # Function to generate realistic EV Charger telemetry
 generate_ev_telemetry() {
     local site_id=$1
-    local hour=$(date +%H)
-    
-    # EV charging is higher during business hours and evening
-    local active_sessions=0
-    if [ $hour -ge 8 ] && [ $hour -le 10 ] || [ $hour -ge 17 ] && [ $hour -le 20 ]; then
-        active_sessions=$((1 + RANDOM % 4))
-    elif [ $hour -ge 11 ] && [ $hour -le 16 ]; then
-        active_sessions=$((RANDOM % 3))
-    fi
-    
-    local power_per_session=$(echo "scale=1; 50 + ($RANDOM % 100)" | bc)
-    local total_power=$(echo "scale=1; $active_sessions * $power_per_session" | bc)
-    local voltage=$(echo "scale=1; 400 + ($RANDOM % 200)" | bc)
-    local current=$(echo "scale=1; $total_power / $voltage * 1000" | bc)
-    local temperature=$(echo "scale=1; 20 + ($RANDOM % 15)" | bc)
-    
-    local status="AVAILABLE"
-    if [ $active_sessions -gt 0 ]; then
-        status="CHARGING"
-    fi
-    
+
+    # Simulate sessions and power
+    local active_sessions=$((RANDOM % 4))
+    local total_sessions=$((active_sessions + RANDOM % 2))
+    local power_delivered=$(echo "scale=1; 50 + ($RANDOM % 100)" | bc)
+    local energy_delivered=$(echo "scale=1; 100 + ($RANDOM % 200)" | bc)
+    local revenue=$(echo "scale=2; 50 + ($RANDOM % 100) * 0.5" | bc)
+    local avg_session_duration=$(echo "scale=1; 20 + ($RANDOM % 40)" | bc)
+    local utilization_rate=$(echo "scale=1; ($active_sessions / 10) * 100" | bc)
+    local network_connectivity=true
+    local payment_system_status="ONLINE"
+    if (( RANDOM % 10 == 0 )); then payment_system_status="OFFLINE"; fi
+    local faults=$((RANDOM % 3))
+    local uptime=$(echo "scale=1; 95 + ($RANDOM % 5)" | bc)
+
+    # Example chargerData array (1-3 chargers)
+    local charger_data='['
+    local num_chargers=$((1 + RANDOM % 3))
+    for ((i=1; i<=num_chargers; i++)); do
+        [ $i -gt 1 ] && charger_data+=','
+        charger_data+="
+        {\"chargerId\": \"CHG${i}\",\"status\": \"CHARGING\",\"sessionId\": \"SID$RANDOM\",\"powerOutput\": $(echo "scale=1; 20 + ($RANDOM % 30)" | bc),\"sessionDuration\": $(echo "scale=1; 10 + ($RANDOM % 30)" | bc),\"energyDelivered\": $(echo "scale=1; 5 + ($RANDOM % 20)" | bc),\"connectorType\": \"CCS\"}"
+    done
+    charger_data+=']'
+
+    # Ensure uptime is always a decimal
+    local uptime_decimal=$(printf "%.1f" "$uptime")
+    local device_id=$((($site_id - 1) * 4 + 4))
+
     cat << EOF
 {
-  "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)",
-  "device_id": "EV-SITE${site_id}-001",
-  "power": $total_power,
-  "voltage": $voltage,
-  "current": $current,
-  "energy_delivered": $(echo "scale=1; 100 + ($RANDOM % 200)" | bc),
-  "active_sessions": $active_sessions,
-  "temperature": $temperature,
-  "status": "$status"
+    "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%S)",
+    "device_id": $device_id,
+    "activeSessions": $active_sessions,
+    "totalSessions": $total_sessions,
+    "powerDelivered": $power_delivered,
+    "energyDelivered": $energy_delivered,
+    "chargerData": $charger_data,
+    "revenue": $revenue,
+    "avgSessionDuration": $avg_session_duration,
+    "utilizationRate": $utilization_rate,
+    "networkConnectivity": $network_connectivity,
+    "paymentSystemStatus": "$payment_system_status",
+    "faults": $faults,
+    "uptime": $uptime_decimal
 }
 EOF
 }
@@ -166,12 +200,12 @@ while true; do
     echo -e "${YELLOW}📡 Sending telemetry batch #$iteration at $(date)${NC}"
     
     # Send telemetry for sites 1-10
-    for site_id in {1..10}; do
+    for site_id in {1..1}; do
         echo -n "  Site $site_id: "
         
         # BMS Device 1
         bms1_idx=$((site_id * 2 - 1))
-        bms1_payload=$(generate_bms_telemetry $site_id 1 ${bms_soc[$bms1_idx]})
+        bms1_payload=$(generate_bms_telemetry $site_id 1 ${bms_soc[$bms1_idx]} $bms1_idx)
         publish_telemetry "ecogrid/site${site_id}/bms/001" "$bms1_payload"
         echo -n "BMS1 "
         

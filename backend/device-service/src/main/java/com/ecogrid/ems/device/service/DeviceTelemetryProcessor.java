@@ -108,7 +108,7 @@ public class DeviceTelemetryProcessor {
             logger.info("✅ Successfully parsed telemetry DTO");
 
             // Set device ID and timestamp if not provided
-            telemetryDTO.setDeviceId(device.getId());
+            // telemetryDTO.setDeviceId(device.getId());
             if (telemetryDTO.getTimestamp() == null) {
                 telemetryDTO.setTimestamp(LocalDateTime.now());
             }

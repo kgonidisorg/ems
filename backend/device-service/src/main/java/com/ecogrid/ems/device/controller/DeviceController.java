@@ -308,7 +308,7 @@ public class DeviceController {
     /**
      * Health check endpoint for devices endpoint
      */
-    @GetMapping("/actuator/health")
+    @GetMapping("/health")
     public ResponseEntity<?> health() {
         return ResponseEntity.ok(Map.of(
                 "status", "UP",

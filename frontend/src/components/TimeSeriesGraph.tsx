@@ -22,12 +22,24 @@ const TimeSeriesGraph: React.FC<TimeSeriesGraphProps> = ({ siteId, hoursBack = 2
     const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
 
     // Fetch energy consumption data specifically for time series (avoid duplicate dashboard calls)
+    // Helper to format date as 'yyyy-MM-ddTHH:mm:ss.SSS' (no 'Z')
+    const toLocalISOString = (date: Date) => {
+        const pad = (n: number, z = 2) => ("00" + n).slice(-z);
+        return date.getFullYear() + "-"
+            + pad(date.getMonth() + 1) + "-"
+            + pad(date.getDate()) + "T"
+            + pad(date.getHours()) + ":"
+            + pad(date.getMinutes()) + ":"
+            + pad(date.getSeconds()) + "."
+            + ("00" + date.getMilliseconds()).slice(-3);
+    };
+
     const { data: energyData, loading, error, refetch } = useAsyncData(
         () => AnalyticsService.getEnergyConsumption({ 
             aggregation: 'HOURLY',
             siteId,
-            startDate: new Date(Date.now() - (hoursBack || 24) * 60 * 60 * 1000).toISOString(),
-            endDate: new Date().toISOString()
+            startDate: toLocalISOString(new Date(Date.now() - (hoursBack || 24) * 60 * 60 * 1000)),
+            endDate: toLocalISOString(new Date())
         }),
         { dependencies: [hoursBack, siteId] }
     );

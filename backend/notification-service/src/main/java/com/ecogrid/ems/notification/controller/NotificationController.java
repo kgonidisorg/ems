@@ -54,14 +54,11 @@ public class NotificationController {
      */
     @GetMapping("/health")
     public ResponseEntity<Map<String, Object>> health() {
-        logger.debug("Health check requested");
-        
         Map<String, Object> healthResponse = Map.of(
             "status", "UP",
             "service", "notification-service",
             "timestamp", System.currentTimeMillis()
         );
-        
         return ResponseEntity.ok(healthResponse);
     }
     

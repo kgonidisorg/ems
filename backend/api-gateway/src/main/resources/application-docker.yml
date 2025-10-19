@@ -11,9 +11,91 @@ spring:
         max-idle: 10
         min-idle: 1
         time-between-eviction-runs: 10s
+  cloud:
+    gateway:
+      routes:
+        - id: auth-service
+          uri: http://${AUTH_SERVICE_HOST:auth-service}:${AUTH_SERVICE_PORT:8081}
+          predicates:
+            - Path=/api/auth/**
+          filters:
+            - RewritePath=/api/auth/(?<path>.*), /api/v1/auth/$\{path}
+            - name: RequestLoggingFilter
+
+        # Device Service Routes (Protected)
+        - id: device-service
+          uri: http://${DEVICE_SERVICE_HOST:device-service}:${DEVICE_SERVICE_PORT:8082}
+          predicates:
+            - Path=/api/devices,/api/devices/**
+          filters:
+            - RewritePath=/api/devices(?<path>.*), /api/v1/devices$\{path}
+            - name: JwtAuthenticationFilter
+            - name: RequestLoggingFilter
+            - name: CircuitBreaker
+              args:
+                name: device-service
+                fallbackUri: forward:/fallback/device-service
+
+        # Site Service Routes (Protected) - handled by Device Service
+        - id: site-service
+          uri: http://${DEVICE_SERVICE_HOST:device-service}:${DEVICE_SERVICE_PORT:8082}
+          predicates:
+            - Path=/api/sites,/api/sites/**
+          filters:
+            - RewritePath=/api/sites(?<path>.*), /api/v1/sites$\{path}
+            - name: JwtAuthenticationFilter
+            - name: RequestLoggingFilter
+            - name: CircuitBreaker
+              args:
+                name: device-service
+                fallbackUri: forward:/fallback/device-service
+
+        # Analytics Service Routes (Protected)
+        - id: analytics-service
+          uri: http://${ANALYTICS_SERVICE_HOST:analytics-service}:${ANALYTICS_SERVICE_PORT:8083}
+          predicates:
+            - Path=/api/analytics/**
+          filters:
+            - RewritePath=/api/analytics/(?<path>.*), /api/v1/analytics/$\{path}
+            - name: JwtAuthenticationFilter
+            - name: RequestLoggingFilter
+            # Temporarily disabled until Redis is stable
+            # - name: RequestRateLimiter
+            #   args:
+            #     redis-rate-limiter.replenishRate: 5
+            #     redis-rate-limiter.burstCapacity: 10
+            #     redis-rate-limiter.requested-tokens: 1
+            - name: CircuitBreaker
+              args:
+                name: analytics-service
+                fallbackUri: forward:/fallback/analytics-service
+
+        # Notification Service Routes (Protected)
+        - id: notification-service
+          uri: http://${NOTIFICATION_SERVICE_HOST:notification-service}:${NOTIFICATION_SERVICE_PORT:8084}
+          predicates:
+            - Path=/api/notifications,/api/notifications/**
+          filters:
+            - RewritePath=/api/notifications(?<path>.*), /api/notifications$\{path}
+            - name: JwtAuthenticationFilter
+            - name: RequestLoggingFilter
+            - name: CircuitBreaker
+              args:
+                name: notification-service
+                fallbackUri: forward:/fallback/notification-service
+        # WebSocket Route
+        - id: device-ws
+          uri: http://device-service:8082
+          predicates:
+            - Path=/ws
+            - Path=/ws/**
+          filters:
+            - RemoveRequestHeader=Sec-WebSocket-Protocol
 
 # Logging for debugging
 logging:
   level:
     org.springframework.data.redis: DEBUG
     io.lettuce.core: DEBUG
+    org.springframework.cloud.gateway: DEBUG
+    com.ecogrid.ems.gateway: DEBUG

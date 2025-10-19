@@ -15,8 +15,8 @@ export type MenuItemName =
     | "Compute";
 const menuItems: Record<MenuItemName, string> = {
     Home: "/",
-    Network: "/network",
     EMS: "/ems",
+    Network: "/network",
     Analytics: "/analytics",
     API: "/apidocs",
     Compute: "/compute",

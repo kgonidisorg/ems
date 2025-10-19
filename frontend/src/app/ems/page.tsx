@@ -30,14 +30,14 @@ const EMSPageContent: React.FC = () => {
     const router = useRouter();
     const searchParams = useSearchParams();
     const [selectedSiteId, setSelectedSiteId] = useState<number | null>(null);
-    
+
     // Fetch available sites for dropdown
     const { sites } = useSiteOptions();
-    
+
     // Initialize selectedSiteId from URL parameter or auto-select first site
     useEffect(() => {
-        const urlSiteId = searchParams.get('siteId');
-        
+        const urlSiteId = searchParams.get("siteId");
+
         if (urlSiteId) {
             // Use site ID from URL if valid
             const siteIdNumber = parseInt(urlSiteId, 10);
@@ -46,42 +46,47 @@ const EMSPageContent: React.FC = () => {
                 return;
             }
         }
-        
+
         // Auto-select the first site when sites are loaded and no site is selected
         if (sites.length > 0 && selectedSiteId === null) {
             const firstSiteId = sites[0].id;
             setSelectedSiteId(firstSiteId);
             // Update URL to reflect the auto-selected site
-            const newSearchParams = new URLSearchParams(searchParams.toString());
-            newSearchParams.set('siteId', firstSiteId.toString());
+            const newSearchParams = new URLSearchParams(
+                searchParams.toString()
+            );
+            newSearchParams.set("siteId", firstSiteId.toString());
             router.replace(`/ems?${newSearchParams.toString()}`);
         }
     }, [sites, selectedSiteId, searchParams, router]);
-    
+
     // Handle site selection change and update URL
     const handleSiteChange = (siteId: number | null) => {
         setSelectedSiteId(siteId);
-        
+
         if (siteId !== null) {
-            const newSearchParams = new URLSearchParams(searchParams.toString());
-            newSearchParams.set('siteId', siteId.toString());
+            const newSearchParams = new URLSearchParams(
+                searchParams.toString()
+            );
+            newSearchParams.set("siteId", siteId.toString());
             router.replace(`/ems?${newSearchParams.toString()}`);
         } else {
             // Remove siteId parameter if null
-            const newSearchParams = new URLSearchParams(searchParams.toString());
-            newSearchParams.delete('siteId');
+            const newSearchParams = new URLSearchParams(
+                searchParams.toString()
+            );
+            newSearchParams.delete("siteId");
             const queryString = newSearchParams.toString();
-            router.replace(`/ems${queryString ? `?${queryString}` : ''}`);
+            router.replace(`/ems${queryString ? `?${queryString}` : ""}`);
         }
     };
-    
+
     // Fetch site overview data based on selected site
-    const {
-        data: siteOverview
-    } = useSiteOverview({ siteId: selectedSiteId });
+    const { data: siteOverview } = useSiteOverview({ siteId: selectedSiteId });
 
     // Extract battery system data from site overview
-    const batteryDevices = siteOverview?.devices.filter(d => d.deviceType === 'BMS') || [];
+    const batteryDevices =
+        siteOverview?.devices.filter((d) => d.deviceType === "BMS") || [];
     const batteryTelemetry = batteryDevices[0]?.latestTelemetry?.data;
     const batterySystem = {
         soc: Number(batteryTelemetry?.soc) || 0,
@@ -93,7 +98,13 @@ const EMSPageContent: React.FC = () => {
     };
 
     // Extract solar array data from site overview
-    const solarDevices = siteOverview?.devices.filter(d => d.deviceType === 'SOLAR_ARRAY' || d.deviceType === 'SOLAR_PANEL' || d.deviceType === 'INVERTER') || [];
+    const solarDevices =
+        siteOverview?.devices.filter(
+            (d) =>
+                d.deviceType === "SOLAR_ARRAY" ||
+                d.deviceType === "SOLAR_PANEL" ||
+                d.deviceType === "INVERTER"
+        ) || [];
     const solarTelemetry = solarDevices[0]?.latestTelemetry?.data;
     const solarArray = {
         currentOutput: Number(solarTelemetry?.power) || 0,
@@ -102,13 +113,21 @@ const EMSPageContent: React.FC = () => {
         status: String(solarTelemetry?.status) || "Unknown",
         irradiance: Number(solarTelemetry?.irradiance) || 0,
         panelTemperature: Number(solarTelemetry?.temperature) || 0,
-    };    // Extract EV charger data from site overview
-    const evDevices = siteOverview?.devices.filter(d => d.deviceType === 'EV_CHARGER') || [];
+    }; // Extract EV charger data from site overview
+    const evDevices =
+        siteOverview?.devices.filter((d) => d.deviceType === "EV_CHARGER") ||
+        [];
     const evTelemetry = evDevices[0]?.latestTelemetry?.data;
     const evCharger = {
-        activeSessions: Number(evTelemetry?.active_sessions) || 0,
-        powerDelivered: Number(evTelemetry?.power) || 0,
-        avgSessionDuration: Number(evTelemetry?.session_duration) || 0,
+        activeSessions: Number(evTelemetry?.activeSessions) || 0,
+        totalSessions: Number(evTelemetry?.totalSessions) || 0,
+        powerDelivered: Number(evTelemetry?.powerDelivered) || 0,
+        avgSessionDuration: Array.isArray(evTelemetry?.chargerData)
+            ? evTelemetry.chargerData.reduce(
+                  (acc, curr) => acc + (curr.sessionDuration || 0),
+                  0
+              ) / evTelemetry.chargerData.length
+            : 0,
         revenue: Number(evTelemetry?.revenue) || 0,
         faults: Number(evTelemetry?.faults) || 0,
         uptime: Number(evTelemetry?.uptime) || 0,
@@ -116,10 +135,58 @@ const EMSPageContent: React.FC = () => {
 
     // Mock forecast data (will be integrated into site overview later)
     const forecast = [
-        { time: '09:00', demand: 45, generation: 60, storage: 75, gridImport: 0, gridExport: 15, batteryLevel: 85, temperature: 22, cloudCover: 20, windSpeed: 5, irradiance: 750 },
-        { time: '10:00', demand: 48, generation: 65, storage: 70, gridImport: 0, gridExport: 17, batteryLevel: 80, temperature: 24, cloudCover: 15, windSpeed: 6, irradiance: 820 },
-        { time: '11:00', demand: 52, generation: 70, storage: 65, gridImport: 0, gridExport: 18, batteryLevel: 75, temperature: 26, cloudCover: 10, windSpeed: 7, irradiance: 900 },
-        { time: '12:00', demand: 55, generation: 75, storage: 60, gridImport: 0, gridExport: 20, batteryLevel: 70, temperature: 28, cloudCover: 5, windSpeed: 8, irradiance: 950 },
+        {
+            time: "09:00",
+            demand: 45,
+            generation: 60,
+            storage: 75,
+            gridImport: 0,
+            gridExport: 15,
+            batteryLevel: 85,
+            temperature: 22,
+            cloudCover: 20,
+            windSpeed: 5,
+            irradiance: 750,
+        },
+        {
+            time: "10:00",
+            demand: 48,
+            generation: 65,
+            storage: 70,
+            gridImport: 0,
+            gridExport: 17,
+            batteryLevel: 80,
+            temperature: 24,
+            cloudCover: 15,
+            windSpeed: 6,
+            irradiance: 820,
+        },
+        {
+            time: "11:00",
+            demand: 52,
+            generation: 70,
+            storage: 65,
+            gridImport: 0,
+            gridExport: 18,
+            batteryLevel: 75,
+            temperature: 26,
+            cloudCover: 10,
+            windSpeed: 7,
+            irradiance: 900,
+        },
+        {
+            time: "12:00",
+            demand: 55,
+            generation: 75,
+            storage: 60,
+            gridImport: 0,
+            gridExport: 20,
+            batteryLevel: 70,
+            temperature: 28,
+            cloudCover: 5,
+            windSpeed: 8,
+            irradiance: 950,
+        },
     ];
 
     // Mock schedule data (will be integrated into site overview later)
@@ -132,12 +199,14 @@ const EMSPageContent: React.FC = () => {
 
     // Use site overview data for site information
     const siteInfo = {
-        location: siteOverview?.address || 'Unknown Location',
-        geo: siteOverview ? `${siteOverview.locationLat}° N, ${siteOverview.locationLng}° W` : 'Unknown Coordinates',
-        contact: siteOverview?.contactPerson || 'No contact information',
-        number: siteOverview?.contactPhone || 'No contact number',
-        email: siteOverview?.contactEmail || 'No email provided',
-        website: 'www.ecogrid.com', // This field is not yet in the site overview, keeping static for now
+        location: siteOverview?.address || "Unknown Location",
+        geo: siteOverview
+            ? `${siteOverview.locationLat}° N, ${siteOverview.locationLng}° W`
+            : "Unknown Coordinates",
+        contact: siteOverview?.contactPerson || "No contact information",
+        number: siteOverview?.contactPhone || "No contact number",
+        email: siteOverview?.contactEmail || "No email provided",
+        website: "www.ecogrid.com", // This field is not yet in the site overview, keeping static for now
     };
 
     // Real-time data is now handled by WebSocket connection
@@ -175,9 +244,7 @@ const EMSPageContent: React.FC = () => {
                     </div>
                     <div className="flex items-center gap-4">
                         <div className="h-3 w-3 rounded-full bg-green-500 animate-pulse"></div>
-                        <span className="text-green-400">
-                            API Connected
-                        </span>
+                        <span className="text-green-400">API Connected</span>
                     </div>
                 </div>
 
@@ -498,7 +565,7 @@ const EMSPageContent: React.FC = () => {
                                         Active Sessions
                                     </h3>
                                     <p className="text-3xl text-white">
-                                        {evCharger.activeSessions} / 10
+                                        {evCharger.activeSessions} / {evCharger.totalSessions}
                                     </p>
                                 </div>
                             </div>
@@ -775,14 +842,16 @@ const EMSPageContent: React.FC = () => {
 
 const EMSPage: React.FC = () => {
     return (
-        <Suspense fallback={
-            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-4"></div>
-                    <p className="text-white">Loading...</p>
+        <Suspense
+            fallback={
+                <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800">
+                    <div className="text-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-4"></div>
+                        <p className="text-white">Loading...</p>
+                    </div>
                 </div>
-            </div>
-        }>
+            }
+        >
             <EMSPageContent />
         </Suspense>
     );

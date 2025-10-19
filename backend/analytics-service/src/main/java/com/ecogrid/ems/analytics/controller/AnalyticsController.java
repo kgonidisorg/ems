@@ -140,8 +140,8 @@ public class AnalyticsController {
         try {
             Pageable pageable = PageRequest.of(page, size);
             Page<ReportResponse> reports = analyticsService.getAllReports(pageable, sortBy, sortDirection);
-            logger.info("Retrieved {} reports (page {} of {})", reports.getNumberOfElements(), 
-                       page + 1, reports.getTotalPages());
+            logger.info("Retrieved {} reports (page {} of {})", reports.getNumberOfElements(),
+                    page + 1, reports.getTotalPages());
             return ResponseEntity.ok(reports);
         } catch (Exception e) {
             logger.error("Failed to retrieve reports", e);
@@ -188,15 +188,11 @@ public class AnalyticsController {
         }
     }
 
-    /**
-     * Health check endpoint
-     */
     @GetMapping("/health")
-    public ResponseEntity<?> health() {
+    public ResponseEntity<?> healthCheck() {
         return ResponseEntity.ok(Map.of(
-            "status", "UP",
-            "service", "analytics-service",
-            "timestamp", System.currentTimeMillis()
-        ));
+                "status", "UP",
+                "service", "device-service-devices",
+                "timestamp", System.currentTimeMillis()));
     }
 }
