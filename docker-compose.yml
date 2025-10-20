@@ -8,8 +8,6 @@ services:
       POSTGRES_DB: ems
       POSTGRES_USER: ems_user
       POSTGRES_PASSWORD: ems_password
-    ports:
-      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./infrastructure/docker/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
@@ -27,8 +25,6 @@ services:
     image: redis:7-alpine
     container_name: ems-redis
     restart: unless-stopped
-    ports:
-      - "6379:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -46,9 +42,6 @@ services:
     image: eclipse-mosquitto:2.0
     container_name: ems-mqtt
     restart: unless-stopped
-    ports:
-      - "1883:1883"
-      - "9001:9001"
     volumes:
       - ./infrastructure/docker/mosquitto.conf:/mosquitto/config/mosquitto.conf
       - mosquitto_data:/mosquitto/data
@@ -89,8 +82,6 @@ services:
     image: confluentinc/cp-kafka:7.4.0
     container_name: ems-kafka
     restart: unless-stopped
-    ports:
-      - "9092:9092"
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
@@ -175,8 +166,6 @@ services:
       - DB_USERNAME=ems_user
       - DB_PASSWORD=ems_password
       - REDIS_HOST=redis
-    ports:
-      - "8081:8081"
     depends_on:
       postgres:
         condition: service_healthy
@@ -217,8 +206,6 @@ services:
       - MQTT_CLIENT_ID=device-service
       - MQTT_USERNAME=ems_mqtt
       - MQTT_PASSWORD=ems_mqtt_password
-    ports:
-      - "8082:8082"
     depends_on:
       postgres:
         condition: service_healthy
@@ -253,8 +240,6 @@ services:
       - DB_NAME=ems_analytics
       - DB_USERNAME=ems_user
       - DB_PASSWORD=ems_password
-    ports:
-      - "8083:8083"
     depends_on:
       postgres:
         condition: service_healthy
@@ -293,8 +278,6 @@ services:
       - MAIL_PORT=1025
       - MAIL_USERNAME=
       - MAIL_PASSWORD=
-    ports:
-      - "8084:8084"
     depends_on:
       postgres:
         condition: service_healthy
