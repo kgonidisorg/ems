@@ -1,0 +1,16 @@
+# Dockerfile for EMS MQTT Telemetry Simulator
+# Location: infrastructure/docker/ems-mqtt-telemetry-simulator.Dockerfile
+
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install dependencies
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy simulator script
+COPY seed_telemetry.py ./seed_telemetry.py
+
+# Entrypoint for telemetry publishing
+CMD ["python", "seed_telemetry.py"]
