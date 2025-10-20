@@ -273,5 +273,3 @@ htmlcov/
 # Miscellaneous
 # =====================================================
 count-repo-stats.sh
-docker-compose.caddy.yml
-Caddyfile

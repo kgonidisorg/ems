@@ -1,0 +1,4 @@
+http://ems.kirongonidis.com {
+    reverse_proxy /api/* ems-api-gateway:8080
+    reverse_proxy /* ems-frontend:80
+}

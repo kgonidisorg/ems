@@ -1,0 +1,72 @@
+FROM eclipse-temurin:21-jdk-alpine AS builder
+
+WORKDIR /app
+RUN apk add --no-cache maven
+
+# Build shared library
+COPY shared/target/shared-1.0.0.jar /tmp/shared-1.0.0.jar
+COPY shared/pom.xml /tmp/shared-pom.xml
+RUN mvn install:install-file \
+  -Dfile=/tmp/shared-1.0.0.jar \
+  -DgroupId=com.ecogrid.ems \
+  -DartifactId=shared \
+  -Dversion=1.0.0 \
+  -Dpackaging=jar \
+  -DpomFile=/tmp/shared-pom.xml
+
+# Build all services
+COPY analytics-service/pom.xml analytics-service/
+COPY analytics-service/src analytics-service/src/
+RUN mvn -f analytics-service/pom.xml clean package -DskipTests
+
+COPY device-service/pom.xml device-service/
+COPY device-service/src device-service/src/
+RUN mvn -f device-service/pom.xml clean package -DskipTests
+
+COPY api-gateway/pom.xml api-gateway/
+COPY api-gateway/src api-gateway/src/
+RUN mvn -f api-gateway/pom.xml clean package -DskipTests
+
+COPY auth-service/pom.xml auth-service/
+COPY auth-service/src auth-service/src/
+RUN mvn -f auth-service/pom.xml clean package -DskipTests
+
+COPY notification-service/pom.xml notification-service/
+COPY notification-service/src notification-service/src/
+RUN mvn -f notification-service/pom.xml clean package -DskipTests
+
+FROM eclipse-temurin:21-jre-alpine
+
+RUN addgroup -g 1001 -S ems && adduser -S ems -u 1001 -G ems
+WORKDIR /app
+
+# Copy all jars
+COPY --from=builder /app/analytics-service/target/*.jar analytics-service.jar
+COPY --from=builder /app/device-service/target/*.jar device-service.jar
+COPY --from=builder /app/api-gateway/target/*.jar api-gateway.jar
+COPY --from=builder /app/auth-service/target/*.jar auth-service.jar
+COPY --from=builder /app/notification-service/target/*.jar notification-service.jar
+
+RUN chown -R ems:ems /app
+USER ems
+
+EXPOSE 8080 8081 8082 8083 8084
+
+ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -Djava.security.egd=file:/dev/./urandom"
+ENV APPLICATION_TYPE=api-gateway
+
+ENTRYPOINT ["sh", "-c", "\
+  if [ \"$APPLICATION_TYPE\" = \"analytics-service\" ]; then \
+  java $JAVA_OPTS -jar analytics-service.jar; \
+  elif [ \"$APPLICATION_TYPE\" = \"device-service\" ]; then \
+  java $JAVA_OPTS -jar device-service.jar; \
+  elif [ \"$APPLICATION_TYPE\" = \"api-gateway\" ]; then \
+  java $JAVA_OPTS -jar api-gateway.jar; \
+  elif [ \"$APPLICATION_TYPE\" = \"auth-service\" ]; then \
+  java $JAVA_OPTS -jar auth-service.jar; \
+  elif [ \"$APPLICATION_TYPE\" = \"notification-service\" ]; then \
+  java $JAVA_OPTS -jar notification-service.jar; \
+  else \
+  echo 'Unknown APPLICATION_TYPE'; exit 1; \
+  fi \
+  "]
