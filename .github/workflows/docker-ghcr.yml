@@ -25,7 +25,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build amd64 image
+      - name: Build amd64 frontend image
         uses: docker/build-push-action@v5
         with:
           context: ./frontend
@@ -33,6 +33,26 @@ jobs:
           platforms: linux/amd64
           push: true
           tags: ghcr.io/${{ github.repository }}:amd64
+          provenance: false
+
+      - name: Build amd64 services image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./infrastructure/docker/Dockerfile.combined-service
+          platforms: linux/amd64
+          push: true
+          tags: ghcr.io/${{ github.repository }}:services-amd64
+          provenance: false
+
+      - name: Build amd64 generator image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./services
+          file: ./infrastructure/docker/Dockerfile.generator
+          platforms: linux/amd64
+          push: true
+          tags: ghcr.io/${{ github.repository }}:generator-amd64
           provenance: false
 
   build-arm64:
@@ -51,7 +71,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build arm64 image
+      - name: Build arm64 frontend image
         uses: docker/build-push-action@v5
         with:
           context: ./frontend
@@ -59,6 +79,26 @@ jobs:
           platforms: linux/arm64
           push: true
           tags: ghcr.io/${{ github.repository }}:arm64
+          provenance: false
+
+      - name: Build arm64 services image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./infrastructure/docker/Dockerfile.combined-service
+          platforms: linux/arm64
+          push: true
+          tags: ghcr.io/${{ github.repository }}:services-arm64
+          provenance: false
+
+      - name: Build arm64 generator image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./services
+          file: ./infrastructure/docker/Dockerfile.generator
+          platforms: linux/arm64
+          push: true
+          tags: ghcr.io/${{ github.repository }}:generator-arm64
           provenance: false
 
   merge-manifest:
@@ -72,13 +112,24 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create and push manifest
+      - name: Create and push manifests
         run: |
           docker buildx create --use
+          # Frontend
           docker manifest create ghcr.io/${{ github.repository }}:latest \
             --amend ghcr.io/${{ github.repository }}:amd64 \
             --amend ghcr.io/${{ github.repository }}:arm64
           docker manifest push ghcr.io/${{ github.repository }}:latest
+          # Services
+          docker manifest create ghcr.io/${{ github.repository }}:services \
+            --amend ghcr.io/${{ github.repository }}:services-amd64 \
+            --amend ghcr.io/${{ github.repository }}:services-arm64
+          docker manifest push ghcr.io/${{ github.repository }}:services
+          # Generator
+          docker manifest create ghcr.io/${{ github.repository }}:generator \
+            --amend ghcr.io/${{ github.repository }}:generator-amd64 \
+            --amend ghcr.io/${{ github.repository }}:generator-arm64
+          docker manifest push ghcr.io/${{ github.repository }}:generator
 
   remote-execute:
     runs-on: ubuntu-latest
@@ -96,6 +147,6 @@ jobs:
             cd $(basename "${{ github.repository }}")
             git pull
             docker login ghcr.io -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
-            docker compose pull
-            docker compose up -d 
+            docker compose --profile all pull
+            docker compose --profile all up -d 
 
