@@ -12,8 +12,8 @@ interface LoginFormProps {
 export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, onSwitchToRegister }) => {
   const { login, isLoading, error, clearError } = useAuth();
   const [formData, setFormData] = useState<LoginRequest>({
-    email: '',
-    password: '',
+    email: 'test@ecogrid.com',
+    password: 'NewPassword123',
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {

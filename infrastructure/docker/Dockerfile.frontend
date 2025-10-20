@@ -9,8 +9,9 @@ COPY package*.json ./
 RUN npm install
 
 # Copy the rest of the application code
-COPY . .
-
+COPY next.config.ts tsconfig.json postcss.config.mjs eslint.config.mjs ./
+COPY public ./public
+COPY src ./src
 # Build the application
 RUN sh -c "npm rebuild esbuild && npm run build"
 
