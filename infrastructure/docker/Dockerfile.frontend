@@ -12,6 +12,9 @@ RUN npm install
 COPY next.config.ts tsconfig.json postcss.config.mjs eslint.config.mjs ./
 COPY public ./public
 COPY src ./src
+
+ARG NEXT_PUBLIC_API_URL=https://ems.kirongonidis.com
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 # Build the application
 RUN sh -c "npm rebuild esbuild && npm run build"
 
