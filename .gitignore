@@ -43,6 +43,10 @@ frontend/next-env.d.ts
 # =====================================================
 # Maven
 backend/**/target/
+!backend/shared/
+!backend/shared/target/
+backend/shared/target/*
+!backend/shared/target/shared-1.0.0.jar
 backend/**/.m2/
 backend/**/dependency-reduced-pom.xml
 
@@ -54,7 +58,7 @@ backend/**/!gradle-wrapper.jar
 backend/**/.gradletasknamecache
 
 # Spring Boot
-backend/**/*.jar
+# backend/**/*.jar
 backend/**/*.war
 backend/**/*.ear
 backend/**/*.nar
