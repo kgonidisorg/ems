@@ -66,7 +66,7 @@ telemetry_cache = TelemetryCache()
 class BMSTelemetry:
     def __init__(self, site_id: int, device_num: int):
         device_id = (site_id - 1) * 4 + device_num
-        now = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0).isoformat()
+        now = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0).isoformat().replace('+00:00', '')
         cache = telemetry_cache.get(site_id, f"bms{device_num}")
         if cache:
             self.deviceId = device_id
@@ -169,7 +169,7 @@ class SolarArrayTelemetry:
 
     def __init__(self, site_id: int):
         device_id = (site_id - 1) * 4 + 3
-        now = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0).isoformat()
+        now = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0).isoformat().replace('+00:00', '')
         hour = datetime.datetime.now(datetime.timezone.utc).hour
         cache = telemetry_cache.get(site_id, "solar")
         # Simulate solar output curve
@@ -303,7 +303,7 @@ class EVChargerTelemetry:
 
     def __init__(self, site_id: int):
         device_id = (site_id - 1) * 4 + 4
-        now = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0).isoformat()
+        now = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0).isoformat().replace('+00:00', '')
         cache = telemetry_cache.get(site_id, "ev")
         if cache:
             active_sessions = update_value(
@@ -406,6 +406,7 @@ def main():
         batch_time = datetime.datetime.now(datetime.timezone.utc).isoformat()
         if count % print_frequency == 0:
             print(f"Publishing {print_frequency} telemetry batches at {batch_time} over {print_frequency * sleep_time} seconds")
+        count += 1
         for site_id in range(1, 11):
             # BMS Device 1
             bms1 = BMSTelemetry(site_id, 1)

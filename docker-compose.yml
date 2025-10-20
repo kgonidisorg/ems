@@ -333,6 +333,37 @@ services:
       - frontend
       - all
 
+  telemetry-publisher:
+    image: ghcr.io/kgonidisorg/ems:generator
+    container_name: ems-telemetry-publisher
+    environment:
+      - APPLICATION_TYPE=telemetry_publisher
+      - MQTT_HOST=mosquitto
+      - MQTT_PORT=1883
+    depends_on:
+      mosquitto:
+        condition: service_healthy
+    profiles:
+      - generator
+      - all
+
+  db-cleanup:
+    image: ghcr.io/kgonidisorg/ems:generator
+    container_name: ems-db-cleanup
+    environment:
+      - APPLICATION_TYPE=db_cleanup
+      - PGHOST=postgres
+      - PGPORT=5432
+      - PGUSER=ems_user
+      - PGPASSWORD=ems_password
+      - CLEANUP_MODE=cron
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles:
+      - generator
+      - all
+
 volumes:
   postgres_data:
   redis_data:
