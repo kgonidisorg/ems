@@ -12,6 +12,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy simulator script
 COPY seed_telemetry.py ./seed_telemetry.py
 COPY weekly_db_cleanup.py ./weekly_db_cleanup.py
+COPY seed_database.py ./seed_database.py
 
 ENV PYTHONUNBUFFERED=1
 
@@ -20,6 +21,8 @@ ENTRYPOINT ["sh", "-c", "\
   python ./seed_telemetry.py; \
   elif [ \"$APPLICATION_TYPE\" = \"db_cleanup\" ]; then \
   python ./weekly_db_cleanup.py; \
+  elif [ \"$APPLICATION_TYPE\" = \"db_seeder\" ]; then \
+  python ./seed_database.py; \
   else \
   echo 'Unknown APPLICATION_TYPE'; exit 1; \
   fi \

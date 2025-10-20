@@ -123,9 +123,6 @@ services:
 
   # Backend Services
   api-gateway:
-    build:
-      context: ./backend
-      dockerfile: ../infrastructure/docker/Dockerfile.combined-service
     image: ghcr.io/kgonidisorg/ems:services
     container_name: ems-api-gateway
     environment:
@@ -372,3 +369,8 @@ volumes:
   zookeeper_data:
   zookeeper_logs:
   kafka_data:
+
+networks:
+  default:
+    name: ems_default
+    driver: bridge
