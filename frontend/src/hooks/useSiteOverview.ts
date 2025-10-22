@@ -28,6 +28,7 @@ export function useSiteOverview({
     const [error, setError] = useState<string | null>(null);
     const siteIdRef = useRef<number | null>(siteId);
     const stompClientRef = useRef<Client | null>(null);
+    const subscriptionRef = useRef<StompSubscription | null>(null);
 
     const fetchSiteOverview = useCallback(async () => {
         if (!siteId) {
@@ -52,76 +53,90 @@ export function useSiteOverview({
             setLoading(false);
         }
     }, [siteId]);
-    const handleStompMessage = useCallback(
-        (message: IMessage) => {
-            try {
-                const payload = JSON.parse(message.body);
-                // Check if siteId and device id match
-                if (
-                    payload.siteId === siteIdRef.current &&
-                    typeof payload.deviceId === "number"
-                ) {
-                    setData((prev) => {
-                        if (!prev) return prev;
-                        if (
-                            !prev.devices?.some(
-                                (d) => d.id === payload.deviceId
-                            )
-                        )
-                            return prev;
-                        return {
-                            ...prev,
-                            devices:
-                                prev.devices?.map((device) => {
-                                    if (device.id === payload.deviceId) {
-                                        const prevTelemetry =
-                                            device.latestTelemetry;
-                                        return {
-                                            ...device,
-                                            latestTelemetry: prevTelemetry
-                                                ? {
-                                                      ...prevTelemetry,
-                                                      data: payload.telemetry,
-                                                      timestamp:
-                                                          payload.timestamp ||
-                                                          prevTelemetry.timestamp,
-                                                      telemetryType:
-                                                          prevTelemetry.telemetryType ||
-                                                          (typeof payload.deviceType ===
-                                                          "string"
-                                                              ? payload.deviceType
-                                                              : "UNKNOWN"),
-                                                  }
-                                                : {
-                                                      timestamp:
-                                                          payload.timestamp ||
-                                                          "",
-                                                      telemetryType:
-                                                          typeof payload.deviceType ===
-                                                          "string"
-                                                              ? payload.deviceType
-                                                              : "UNKNOWN",
-                                                      data: payload.telemetry,
-                                                  },
-                                        };
-                                    }
-                                    return device;
-                                }) || [],
-                        };
-                    });
-                }
-            } catch (err) {
-                console.error("[STOMP] Error parsing message:", err);
-            }
-        },
-        [siteIdRef]
-    );
+    const handleStompMessage = useCallback((message: IMessage) => {
+        try {
+            const payload = JSON.parse(message.body);
+            // Check if siteId and device id match
+
+            setData((prev) => {
+                if (!prev) return prev;
+                if (!prev.devices?.some((d) => d.id === payload.deviceId))
+                    return prev;
+                return {
+                    ...prev,
+                    devices:
+                        prev.devices?.map((device) => {
+                            if (device.id === payload.deviceId) {
+                                const prevTelemetry = device.latestTelemetry;
+                                return {
+                                    ...device,
+                                    latestTelemetry: prevTelemetry
+                                        ? {
+                                              ...prevTelemetry,
+                                              data: payload.telemetry,
+                                              timestamp:
+                                                  payload.timestamp ||
+                                                  prevTelemetry.timestamp,
+                                              telemetryType:
+                                                  prevTelemetry.telemetryType ||
+                                                  (typeof payload.deviceType ===
+                                                  "string"
+                                                      ? payload.deviceType
+                                                      : "UNKNOWN"),
+                                          }
+                                        : {
+                                              timestamp:
+                                                  payload.timestamp || "",
+                                              telemetryType:
+                                                  typeof payload.deviceType ===
+                                                  "string"
+                                                      ? payload.deviceType
+                                                      : "UNKNOWN",
+                                              data: payload.telemetry,
+                                          },
+                                };
+                            }
+                            return device;
+                        }) || [],
+                };
+            });
+        } catch (err) {
+            console.error("[STOMP] Error parsing message:", err);
+        }
+    }, []);
 
     // Fetch data when siteId changes
     useEffect(() => {
         fetchSiteOverview();
+    }, [fetchSiteOverview]);
+
+    useEffect(() => {
+        if (!siteId || siteId === siteIdRef.current) {
+            return;
+        }
         siteIdRef.current = siteId;
-    }, [fetchSiteOverview, siteId]);
+        if (!subscriptionRef.current) {
+            return;
+        }
+
+        try {
+            subscriptionRef.current.unsubscribe();
+        } catch (err) {
+            console.error("Error unsubscribing from previous topic:", err);
+        }
+        subscriptionRef.current = null;
+
+        if (stompClientRef.current && stompClientRef.current.connected) {
+            try {
+                subscriptionRef.current = stompClientRef.current.subscribe(
+                    `/topic/telemetry/${siteId}`,
+                    handleStompMessage
+                );
+            } catch (err) {
+                console.error("Error subscribing to topic:", err);
+            }
+        }
+    }, [siteId, handleStompMessage]);
 
     // Create and activate the client only once
     useEffect(() => {
@@ -140,8 +155,11 @@ export function useSiteOverview({
                     frame.body
                 );
             };
-            client.onConnect = (frame) => {
-                client.subscribe("/topic/telemetry", handleStompMessage);
+            client.onConnect = () => {
+                subscriptionRef.current = client.subscribe(
+                    `/topic/telemetry/${siteIdRef.current}`,
+                    handleStompMessage
+                );
             };
             client.activate();
             stompClientRef.current = client;

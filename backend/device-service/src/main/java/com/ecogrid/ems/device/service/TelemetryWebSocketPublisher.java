@@ -24,9 +24,10 @@ public class TelemetryWebSocketPublisher {
      */
     @KafkaListener(topics = "device-telemetry", groupId = "device-telemetry-ws")
     public void handleTelemetryMessage(Map<String, Object> message) {
+        Integer siteId = (Integer) message.get("siteId");
         try {
             logger.info("[WS-PUBLISH] Publishing to WebSocket topic: /topic/telemetry");
-            messagingTemplate.convertAndSend("/topic/telemetry", message);
+            messagingTemplate.convertAndSend("/topic/telemetry/" + siteId, message);
         } catch (Exception e) {
             logger.error("[WS-PUBLISH] Error publishing to WebSocket topic /topic/telemetry: {}", e.getMessage(), e);
         }
