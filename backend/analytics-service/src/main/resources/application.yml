@@ -33,7 +33,6 @@ management:
 # Logging
 logging:
   level:
-    com.ecogrid.ems.analytics: DEBUG
-    org.springframework.security: DEBUG
+    ROOT: ${LOG_LEVEL:WARN}
   pattern:
     console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"

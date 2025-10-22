@@ -5,8 +5,9 @@ import { User, SiteOption } from "./types";
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:8080";
 
 // Configuration for different services
-const API_CONFIG = {
-  API_GATEWAY: `${BASE_URL.replace(/\/$/, "")}/api`,
+export const API_CONFIG = {
+    API_GATEWAY: `${BASE_URL.replace(/\/$/, "")}/api`,
+    WEBSOCKET_URL: `${BASE_URL.replace("http", "ws").replace(/\/$/, "")}/ws`,
 };
 
 // Token management

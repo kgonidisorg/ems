@@ -72,9 +72,7 @@ management:
 # Logging Configuration
 logging:
   level:
-    com.ecogrid.ems.notification: DEBUG
-    org.springframework.kafka: INFO
-    org.springframework.web.socket: DEBUG
+    ROOT: ${LOG_LEVEL:WARN}
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
     file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"

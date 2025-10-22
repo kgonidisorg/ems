@@ -117,7 +117,6 @@ management:
 # Logging
 logging:
   level:
-    org.springframework.cloud.gateway: DEBUG
-    com.ecogrid.ems.gateway: DEBUG
+    ROOT: ${LOG_LEVEL:WARN}
   pattern:
     console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"

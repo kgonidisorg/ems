@@ -1,37 +1,47 @@
+
 FROM eclipse-temurin:21-jdk-alpine AS builder
 
 WORKDIR /app
 RUN apk add --no-cache maven
 
-# Build shared library
+# Shared library
 COPY shared/target/shared-1.0.0.jar /tmp/shared-1.0.0.jar
-COPY shared/pom.xml /tmp/shared-pom.xml
+COPY shared/pom.xml shared/pom.xml
 RUN mvn install:install-file \
   -Dfile=/tmp/shared-1.0.0.jar \
   -DgroupId=com.ecogrid.ems \
   -DartifactId=shared \
   -Dversion=1.0.0 \
   -Dpackaging=jar \
-  -DpomFile=/tmp/shared-pom.xml
+  -DpomFile=shared/pom.xml
 
-# Build all services
-COPY analytics-service/pom.xml analytics-service/
+# Copy all service pom.xml files first for caching
+COPY analytics-service/pom.xml analytics-service/pom.xml
+COPY device-service/pom.xml device-service/pom.xml
+COPY api-gateway/pom.xml api-gateway/pom.xml
+COPY auth-service/pom.xml auth-service/pom.xml
+COPY notification-service/pom.xml notification-service/pom.xml
+
+# Download dependencies for offline mode
+RUN mvn -f analytics-service/pom.xml dependency:go-offline
+RUN mvn -f device-service/pom.xml dependency:go-offline
+RUN mvn -f api-gateway/pom.xml dependency:go-offline
+RUN mvn -f auth-service/pom.xml dependency:go-offline
+RUN mvn -f notification-service/pom.xml dependency:go-offline
+
+# Copy source code after dependencies are cached
 COPY analytics-service/src analytics-service/src/
 RUN mvn -f analytics-service/pom.xml clean package -DskipTests
 
-COPY device-service/pom.xml device-service/
 COPY device-service/src device-service/src/
 RUN mvn -f device-service/pom.xml clean package -DskipTests
 
-COPY api-gateway/pom.xml api-gateway/
 COPY api-gateway/src api-gateway/src/
 RUN mvn -f api-gateway/pom.xml clean package -DskipTests
 
-COPY auth-service/pom.xml auth-service/
 COPY auth-service/src auth-service/src/
 RUN mvn -f auth-service/pom.xml clean package -DskipTests
 
-COPY notification-service/pom.xml notification-service/
 COPY notification-service/src notification-service/src/
 RUN mvn -f notification-service/pom.xml clean package -DskipTests
 

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, use } from "react";
 import { Client, IMessage, StompSubscription } from "@stomp/stompjs";
 import { SiteOverview } from "@/lib/types";
-import { SiteService } from "@/lib/api";
+import { API_CONFIG, SiteService } from "@/lib/api";
 
 interface UseSiteOverviewOptions {
     siteId: number | null;
@@ -127,8 +127,8 @@ export function useSiteOverview({
     useEffect(() => {
         if (!stompClientRef.current) {
             const client = new Client({
-                brokerURL: "ws://localhost:8080/ws",
-                webSocketFactory: () => new WebSocket("ws://localhost:8080/ws"),
+                brokerURL: API_CONFIG.WEBSOCKET_URL,
+                webSocketFactory: () => new WebSocket(API_CONFIG.WEBSOCKET_URL),
                 reconnectDelay: 5000,
                 heartbeatIncoming: 4000,
                 heartbeatOutgoing: 4000,
